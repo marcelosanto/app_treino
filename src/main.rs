@@ -73,20 +73,25 @@ fn Home() -> Element {
                 }
 
                 div { class: "nav-tabs",
-                    button { class: "nav-tab active",
-                        //onclick: move |_| { "showTab(event, 'dashboard')" },
+                    button {
+                        class: "nav-tab active",
+                        onclick: move |_| { println!("Dashboard") },
                         "Dashboard"
                     }
-                    button { class: "nav-tab",
-                        //onclick: "showTab(event, 'workouts')",
+                    button {
+                        class: "nav-tab",
+                        onclick: move |_| { println!("Meus Treinos") },
                         "Meus Treinos"
                     }
-                    button { class: "nav-tab",
-                        //onclick: "showTab(event, 'progress')",
+                    button {
+                        class: "nav-tab",
+                        onclick: move |_| { println!("Registrar") },
                         "Registrar"
                     }
-                    button { class: "nav-tab",
-                        //onclick: "showTab(event, 'stats')",
+                    button {
+                        class: "nav-tab",
+                        onclick: move |_| { println!("Estatisticas") },
+
                         "Estatísticas"
                     }
                 }
@@ -132,7 +137,7 @@ fn Home() -> Element {
                             " para lançar seus resultados."
                         }
                         button { class: "btn btn-primary",
-                            // onclick: "showCreateWorkoutModal()",
+                            //onclick: move |evt| { println!("OIeee {evt:?}") },
                             "+ Criar Novo Plano de Treino"
                         }
                         div { id: "workoutsList", class: "workout-list",
