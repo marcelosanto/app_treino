@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4 # Faz o upload do artefato compilado
         with:
           name: linux-build # Nome do artefato
-          path: target/release/<SEU_APP_NAME_LINUX> # Substitua <SEU_APP_NAME_LINUX> pelo nome do seu executável Linux (geralmente o nome do crate)
+          path: target/release/meu_app_treino # Substitua <SEU_APP_NAME_LINUX> pelo nome do seu executável Linux (geralmente o nome do crate)
           # Ex: path: target/release/meu_app_dioxus
 
       - name: Upload do Artefato Windows
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: target/release/<SEU_APP_NAME_WINDOWS>.exe # Substitua <SEU_APP_NAME_WINDOWS> pelo nome do seu executável Windows
+          path: target/release/meu_app_treino.exe # Substitua <SEU_APP_NAME_WINDOWS> pelo nome do seu executável Windows
           # Ex: path: target/release/meu_app_dioxus.exe
 
   # Job para compilar para WebAssembly (WASM)
