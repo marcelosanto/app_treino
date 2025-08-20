@@ -8,8 +8,15 @@ enum Route {
     Home {},
     #[route("/blog/:id")]
     Blog { id: i32 },
-    #[route("/workouts")]
-    Workouts {}
+}
+
+#[derive(Clone, PartialEq)]
+enum Tabs {
+    dashboard,
+    workouts,
+    progress,
+    stats,
+    modal,
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -55,6 +62,8 @@ pub fn Hero() -> Element {
 fn Home() -> Element {
     //let mut counter = use_signal(|| 0);
 
+    let mut toggle_tabs = use_signal(|| Tabs::stats);
+
     rsx! {
         head {
             meta { charset: "UTF-8" }
@@ -74,41 +83,52 @@ fn Home() -> Element {
 
                 div { class: "nav-tabs",
                     button {
-                        class: "nav-tab active",
-                        onclick: move |_| { println!("Dashboard") },
+                        class: if toggle_tabs() == Tabs::dashboard { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::dashboard) },
                         "Dashboard"
                     }
                     button {
-                        class: "nav-tab",
-                        onclick: move |_| { println!("Meus Treinos") },
+                        class: if toggle_tabs() == Tabs::workouts { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::workouts) },
                         "Meus Treinos"
                     }
                     button {
-                        class: "nav-tab",
-                        onclick: move |_| { println!("Registrar") },
+                        class: if toggle_tabs() == Tabs::progress { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::progress) },
                         "Registrar"
                     }
                     button {
-                        class: "nav-tab",
-                        onclick: move |_| { println!("Estatisticas") },
-
+                        class: if toggle_tabs() == Tabs::stats { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| {
+                            toggle_tabs.set(Tabs::stats);
+                            println!("Stats")
+                        },
                         "Estatísticas"
                     }
                 }
 
-                DashBoard {}
 
-                Workouts {}
-
-                Progress {}
-
-                Stats {}
-
-                CreateWorkoutModal {}
+                match toggle_tabs() {
+                    Tabs::dashboard => rsx! {
+                        DashBoard {}
+                    },
+                    Tabs::workouts => rsx! {
+                        Workouts {}
+                    },
+                    Tabs::progress => rsx! {
+                        Progress {}
+                    },
+                    Tabs::stats => rsx! {
+                        Stats {}
+                    },
+                    Tabs::modal => rsx! {
+                        CreateWorkoutModal {}
+                    },
+                }
 
                 button {
                     class: "floating-add-btn",
-                    onclick: move |_| println!("showCreateWorkoutModal()"),
+                    onclick: move |_| toggle_tabs.set(Tabs::modal),
                     title: "Criar novo plano de treino",
                     "+"
                 }
@@ -183,7 +203,7 @@ pub fn Workouts() -> Element {
 #[component]
 pub fn Progress() -> Element {
     rsx! {
-        div { id: "progress", class: "tab-content",
+        div { id: "progress", class: "tab-content active",
             div { class: "card",
                 h2 { "📈 Registrar Progresso" }
                 div { class: "form-group",
@@ -202,7 +222,7 @@ pub fn Progress() -> Element {
 #[component]
 pub fn Stats() -> Element {
     rsx! {
-        div { id: "stats", class: "tab-content",
+        div { id: "stats", class: "tab-content active",
             div { class: "card",
                 h2 { "🏆 Recordes Pessoais (PRs)" }
                 div { id: "detailedStats",
@@ -292,7 +312,6 @@ fn Navbar() -> Element {
         div { id: "navbar",
             Link { to: Route::Home {}, "Home" }
             Link { to: Route::Blog { id: 1 }, "Blog" }
-            Link { to: Route::Workouts {}, "Workouts" }
         }
 
         Outlet::<Route> {}
