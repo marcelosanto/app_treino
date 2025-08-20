@@ -1,22 +1,12 @@
 use dioxus::prelude::*;
 
-#[derive(Debug, Clone, Routable, PartialEq)]
-#[rustfmt::skip]
-enum Route {
-    #[layout(Navbar)]
-    #[route("/")]
-    Home {},
-    #[route("/blog/:id")]
-    Blog { id: i32 },
-}
-
 #[derive(Clone, PartialEq)]
-enum Tabs {
-    dashboard,
-    workouts,
-    progress,
-    stats,
-    modal,
+pub enum Tabs {
+    DashBoard,
+    Workouts,
+    Progress,
+    Stats,
+    Modal,
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -34,26 +24,7 @@ fn App() -> Element {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
-        Router::<Route> {}
-    }
-}
-
-#[component]
-pub fn Hero() -> Element {
-    rsx! {
-        div { id: "hero",
-            img { src: HEADER_SVG, id: "header" }
-            div { id: "links",
-                a { href: "https://dioxuslabs.com/learn/0.6/", "📚 Learn Dioxus" }
-                a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
-                a { href: "https://github.com/dioxus-community/", "📡 Community Libraries" }
-                a { href: "https://github.com/DioxusLabs/sdk", "⚙️ Dioxus Development Kit" }
-                a { href: "https://marketplace.visualstudio.com/items?itemName=DioxusLabs.dioxus",
-                    "💫 VSCode Extension"
-                }
-                a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
-            }
-        }
+        Home {}
     }
 }
 
@@ -62,7 +33,7 @@ pub fn Hero() -> Element {
 fn Home() -> Element {
     //let mut counter = use_signal(|| 0);
 
-    let mut toggle_tabs = use_signal(|| Tabs::stats);
+    let mut toggle_tabs = use_signal(|| Tabs::DashBoard);
 
     rsx! {
         head {
@@ -83,24 +54,24 @@ fn Home() -> Element {
 
                 div { class: "nav-tabs",
                     button {
-                        class: if toggle_tabs() == Tabs::dashboard { "nav-tab active" } else { "nav-tab" },
-                        onclick: move |_| { toggle_tabs.set(Tabs::dashboard) },
+                        class: if toggle_tabs() == Tabs::DashBoard { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::DashBoard) },
                         "Dashboard"
                     }
                     button {
-                        class: if toggle_tabs() == Tabs::workouts { "nav-tab active" } else { "nav-tab" },
-                        onclick: move |_| { toggle_tabs.set(Tabs::workouts) },
+                        class: if toggle_tabs() == Tabs::Workouts { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::Workouts) },
                         "Meus Treinos"
                     }
                     button {
-                        class: if toggle_tabs() == Tabs::progress { "nav-tab active" } else { "nav-tab" },
-                        onclick: move |_| { toggle_tabs.set(Tabs::progress) },
+                        class: if toggle_tabs() == Tabs::Progress { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| { toggle_tabs.set(Tabs::Progress) },
                         "Registrar"
                     }
                     button {
-                        class: if toggle_tabs() == Tabs::stats { "nav-tab active" } else { "nav-tab" },
+                        class: if toggle_tabs() == Tabs::Stats { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
-                            toggle_tabs.set(Tabs::stats);
+                            toggle_tabs.set(Tabs::Stats);
                             println!("Stats")
                         },
                         "Estatísticas"
@@ -109,26 +80,26 @@ fn Home() -> Element {
 
 
                 match toggle_tabs() {
-                    Tabs::dashboard => rsx! {
+                    Tabs::DashBoard => rsx! {
                         DashBoard {}
                     },
-                    Tabs::workouts => rsx! {
+                    Tabs::Workouts => rsx! {
                         Workouts {}
                     },
-                    Tabs::progress => rsx! {
+                    Tabs::Progress => rsx! {
                         Progress {}
                     },
-                    Tabs::stats => rsx! {
+                    Tabs::Stats => rsx! {
                         Stats {}
                     },
-                    Tabs::modal => rsx! {
-                        CreateWorkoutModal {}
+                    Tabs::Modal => rsx! {
+                        CreateWorkoutModal { toggle_tabs }
                     },
                 }
 
                 button {
                     class: "floating-add-btn",
-                    onclick: move |_| toggle_tabs.set(Tabs::modal),
+                    onclick: move |_| toggle_tabs.set(Tabs::Modal),
                     title: "Criar novo plano de treino",
                     "+"
                 }
@@ -236,7 +207,7 @@ pub fn Stats() -> Element {
 }
 
 #[component]
-pub fn CreateWorkoutModal() -> Element {
+pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
     rsx! {
         div { id: "createWorkoutModal", class: "modal",
             div { class: "modal-content",
@@ -273,9 +244,9 @@ pub fn CreateWorkoutModal() -> Element {
                         onclick: move |_| println!("addExerciseField()"),
                         "+ Adicionar Exercício"
                     }
-                    br {}
                     button {
-                        onclick: move |_| println!("Treino Salvo"),
+                        r#type: "button",
+                        onclick: move |_| toggle_tabs.set(Tabs::Workouts),
                         class: "btn btn-primary",
                         "Salvar Plano"
                     }
@@ -283,37 +254,5 @@ pub fn CreateWorkoutModal() -> Element {
             }
         }
 
-    }
-}
-/// Blog page
-#[component]
-pub fn Blog(id: i32) -> Element {
-    rsx! {
-        div { id: "blog",
-
-            // Content
-            h1 { "This is blog #{id}!" }
-            p {
-                "In blog #{id}, we show how the Dioxus router works and how URL parameters can be passed as props to our route components."
-            }
-
-            // Navigation links
-            Link { to: Route::Blog { id: id - 1 }, "Previous" }
-            span { " <---> " }
-            Link { to: Route::Blog { id: id + 1 }, "Next" }
-        }
-    }
-}
-
-/// Shared navbar component.
-#[component]
-fn Navbar() -> Element {
-    rsx! {
-        div { id: "navbar",
-            Link { to: Route::Home {}, "Home" }
-            Link { to: Route::Blog { id: 1 }, "Blog" }
-        }
-
-        Outlet::<Route> {}
     }
 }
