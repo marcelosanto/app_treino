@@ -208,8 +208,8 @@ pub fn DashBoard() -> Element {
 pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
     println!("Workouts -> {:?}", workoutes());
 
-    let mut show_modal = use_signal(|| false);
-    let mut selected_workout = use_signal(|| None);
+    let show_modal = use_signal(|| false);
+    let selected_workout = use_signal(|| None);
 
     rsx! {
         div {
