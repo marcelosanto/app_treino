@@ -57,7 +57,37 @@ fn Home() -> Element {
             desc: "Treino A".to_string(),
             date: now,
             qtd_exercise: 3,
-            exercises: vec![Exercise::default()],
+            exercises: vec![
+                Exercise {
+                    name: "Supino Reto".to_string(),
+                    sets: 3,
+                    reps: "12".to_string(),
+                },
+                Exercise {
+                    name: "Desenvolvimento".to_string(),
+                    sets: 3,
+                    reps: "12".to_string(),
+                },
+            ],
+        });
+
+        workoutes.push(Workoute {
+            name: "Treino B".to_string(),
+            desc: "Costas".to_string(),
+            date: now,
+            qtd_exercise: 3,
+            exercises: vec![
+                Exercise {
+                    name: "Puxada".to_string(),
+                    sets: 3,
+                    reps: "12".to_string(),
+                },
+                Exercise {
+                    name: "Remada".to_string(),
+                    sets: 3,
+                    reps: "12".to_string(),
+                },
+            ],
         });
     }
 
@@ -175,6 +205,10 @@ pub fn DashBoard() -> Element {
 #[component]
 pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
     println!("Workouts -> {:?}", workoutes());
+
+    let mut show_modal = use_signal(|| false);
+    let mut selected_workout = use_signal(|| None);
+
     rsx! {
         div {
             div { class: "card",
@@ -198,8 +232,16 @@ pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
                         div {
                             for work in workoutes() {
 
-                                ListWorkout { work }
+                                ListWorkout {
+                                    work,
+                                    show_modal,
+                                    selected_workout,
+                                }
                             }
+                        }
+
+                        if show_modal() {
+                            ViewWorkout { work: selected_workout, show_modal }
                         }
                     }
                 }
@@ -209,13 +251,21 @@ pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
 }
 
 #[component]
-pub fn ListWorkout(work: Workoute) -> Element {
+pub fn ListWorkout(
+    work: Workoute,
+    show_modal: Signal<bool>,
+    selected_workout: Signal<Option<Workoute>>,
+) -> Element {
     println!("ListWorkout {:?}", work.name);
     let formatted_date = work.date.format("%d/%m").to_string();
-
+    let cloned_workout = work.clone();
     rsx! {
-        div { class: "workout-item",
-            //onclick:"viewWorkout(workout.id)",
+        div {
+            class: "workout-item",
+            onclick: move |_| {
+                selected_workout.set(Some(cloned_workout.clone()));
+                show_modal.set(true)
+            },
             div { class: "workout-header",
                 div { class: "workout-title", "{work.name}" }
                 div { class: "workout-date", "Criado em {formatted_date}" }
@@ -229,6 +279,42 @@ pub fn ListWorkout(work: Workoute) -> Element {
             }
             div { style: "margin-top: 10px; font-size: 0.9rem; opacity: 0.8;",
                 "{work.qtd_exercise} exercícios"
+            }
+        }
+    }
+}
+
+#[component]
+pub fn ViewWorkout(work: Signal<Option<Workoute>>, show_modal: Signal<bool>) -> Element {
+    let work = work.unwrap();
+    rsx! {
+        div { class: "modal",
+            // style: "display: block;",
+            div { class: "modal-content",
+                span { class: "close", onclick: move |_| show_modal.set(false), "x" }
+                h2 { {work.name} }
+                p { {work.desc} }
+                div { class: "exercise-list",
+                    for exercise in work.exercises {
+                        div { class: "exercise-item",
+                            div { class: "exercise-name", "{exercise.name}" }
+                            p { "Meta: {exercise.sets} séries de {exercise.reps} reps" }
+                        }
+                    }
+
+
+
+                    button { class: "btn btn-primary",
+                        //onclick:"startWorkout(${workout.id})",
+                        "Registrar este Treino"
+                    }
+                    button {
+                        class: "btn btn-danger",
+                        //onclick:"deleteWorkout(${workout.id})",
+                        style: "margin-left: 10px;",
+                        "Excluir Treino"
+                    }
+                }
             }
         }
     }
