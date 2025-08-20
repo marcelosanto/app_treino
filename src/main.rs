@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{dioxus_core::ElementId, document::document, prelude::*};
 
 #[derive(Clone, PartialEq)]
 pub enum Tabs {
@@ -7,6 +7,13 @@ pub enum Tabs {
     Progress,
     Stats,
     Modal,
+}
+
+#[derive(Default, Clone, PartialEq)]
+struct Exercise {
+    name: String,
+    sets: u32,
+    reps: String,
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -208,12 +215,22 @@ pub fn Stats() -> Element {
 
 #[component]
 pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
+    let mut exercises = use_signal(|| vec![Exercise::default()]);
+
+    let add_exercise = move |_| {
+        exercises.with_mut(|exercises| {
+            exercises.push(Exercise::default());
+        });
+    };
+
     rsx! {
         div { id: "createWorkoutModal", class: "modal",
             div { class: "modal-content",
                 span {
                     class: "close",
-                    onclick: move |_| println!("closeModal('createWorkoutModal')"),
+                    onclick: move |_| {
+                        toggle_tabs.set(Tabs::Workouts);
+                    },
                     "x"
                 }
                 h2 { "Criar Novo Plano de Treino" }
@@ -223,7 +240,6 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                         input {
                             r#type: "text",
                             id: "workoutName",
-                            // required,
                             placeholder: "Ex: Treino A - Peito e Tríceps",
                         }
                     }
@@ -235,63 +251,93 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                             placeholder: "Foco do treino, dias da semana...",
                         }
                     }
+
                     div { id: "exercisesContainer",
                         h3 { "Exercícios" }
-                        div { style: "border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin: 15px 0; background: #f8f9fa;",
-                            div { class: "form-group",
-                                label { "Nome do Exercício:" }
-                                input {
-                                    r#type: "text",
-                                    class: "exercise-name-input",
-                                    //required
-                                    placeholder: "Ex: Supino Reto com Halteres",
+                        for (index , exercise) in exercises().iter().enumerate() {
+                            div {
+                                key: "{index}",
+                                style: "border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin: 15px 0; background: #f8f9fa;",
+                                div { class: "form-group",
+                                    label { "Nome do Exercício:" }
+                                    input {
+                                        r#type: "text",
+                                        class: "exercise-name-input",
+                                        required: true,
+                                        placeholder: "Ex: Supino Reto com Halteres",
+                                        value: "{exercise.name}",
+                                        oninput: move |evt| {
+                                            exercises
+                                                .with_mut(|exercises| {
+                                                    exercises[index].name = evt.value();
+                                                });
+                                        },
+                                    }
                                 }
-                            }
-                            div { class: "form-group",
-                                label { "Séries Planejadas:" }
-                                input {
-                                    r#type: "number",
-                                    class: "exercise-sets-input",
-                                    //required
-                                    min: "1",
-                                    //required
-                                    value: "3",
-                                    //required
-                                    placeholder: "3",
+                                div { class: "form-group",
+                                    label { "Séries Planejadas:" }
+                                    input {
+                                        r#type: "number",
+                                        class: "exercise-sets-input",
+                                        min: "1",
+                                        value: "{exercise.sets}",
+                                        placeholder: "3",
+                                        oninput: move |evt| {
+                                            if let Ok(value) = evt.value().parse::<u32>() {
+                                                exercises
+                                                    .with_mut(|exercises| {
+                                                        exercises[index].sets = value;
+                                                    });
+                                            }
+                                        },
+                                    }
                                 }
-                            }
-                            div { class: "form-group",
-                                label { " Repetições Alvo:" }
-                                input {
-                                    r#type: "text",
-                                    class: "exercise-reps-input",
-                                    //required
-                                    placeholder: "Ex: 8-12",
+                                div { class: "form-group",
+                                    label { "Repetições Alvo:" }
+                                    input {
+                                        r#type: "text",
+                                        class: "exercise-reps-input",
+                                        required: true,
+                                        placeholder: "Ex: 8-12",
+                                        value: "{exercise.reps}",
+                                        oninput: move |evt| {
+                                            exercises
+                                                .with_mut(|exercises| {
+                                                    exercises[index].reps = evt.value();
+                                                });
+                                        },
+                                    }
                                 }
-                            }
-                            button {
-                                r#type: "button",
-                                class: "btn btn-danger",
-                                onclick: move |_| println!("this.parentElement.remove()"),
-                                "Remover"
+                                button {
+                                    r#type: "button",
+                                    class: "btn btn-danger",
+                                    onclick: move |_| {
+                                        exercises
+                                            .with_mut(|exercises| {
+                                                exercises.remove(index);
+                                            });
+                                    },
+                                    "Remover"
+                                }
                             }
                         }
                     }
                     button {
                         r#type: "button",
                         class: "btn btn-secondary",
-                        onclick: move |_| println!("addExerciseField()"),
+                        onclick: add_exercise,
                         "+ Adicionar Exercício"
                     }
                     button {
-                        r#type: "button",
-                        onclick: move |_| toggle_tabs.set(Tabs::Workouts),
+                        r#type: "submit",
+                        onclick: move |_| {
+                            toggle_tabs.set(Tabs::Workouts);
+                        },
                         class: "btn btn-primary",
                         "Salvar Plano"
                     }
                 }
             }
         }
-
     }
 }
