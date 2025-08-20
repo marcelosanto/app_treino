@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 
 #[derive(Clone, PartialEq)]
@@ -9,11 +10,20 @@ pub enum Tabs {
     Modal,
 }
 
-#[derive(Default, Clone, PartialEq)]
-struct Exercise {
+#[derive(Default, Clone, PartialEq, Debug)]
+pub struct Exercise {
     name: String,
     sets: u32,
     reps: String,
+}
+
+#[derive(Default, Clone, PartialEq, Debug)]
+pub struct Workoute {
+    name: String,
+    desc: String,
+    date: DateTime<Local>,
+    qtd_exercise: u32,
+    exercises: Vec<Exercise>,
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -37,9 +47,19 @@ fn App() -> Element {
 /// Home page
 #[component]
 fn Home() -> Element {
-    //let mut counter = use_signal(|| 0);
-
     let mut toggle_tabs = use_signal(|| Tabs::DashBoard);
+    let mut workoutes = use_signal(|| vec![]);
+    let now: DateTime<Local> = Local::now();
+
+    if workoutes.is_empty() {
+        workoutes.push(Workoute {
+            name: "Treino A".to_string(),
+            desc: "Treino A".to_string(),
+            date: now,
+            qtd_exercise: 3,
+            exercises: vec![Exercise::default()],
+        });
+    }
 
     rsx! {
         head {
@@ -90,7 +110,7 @@ fn Home() -> Element {
                         DashBoard {}
                     },
                     Tabs::Workouts => rsx! {
-                        Workouts {}
+                        Workouts { workoutes }
                     },
                     Tabs::Progress => rsx! {
                         Progress {}
@@ -99,7 +119,7 @@ fn Home() -> Element {
                         Stats {}
                     },
                     Tabs::Modal => rsx! {
-                        CreateWorkoutModal { toggle_tabs }
+                        CreateWorkoutModal { toggle_tabs, workoutes }
                     },
                 }
 
@@ -153,7 +173,8 @@ pub fn DashBoard() -> Element {
 }
 
 #[component]
-pub fn Workouts() -> Element {
+pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
+    println!("Workouts -> {:?}", workoutes());
     rsx! {
         div {
             div { class: "card",
@@ -168,10 +189,46 @@ pub fn Workouts() -> Element {
                     "+ Criar Novo Plano de Treino"
                 }
                 div { id: "workoutsList", class: "workout-list",
-                    div { class: "empty-state",
-                        p { "Você ainda não tem planos de treino. Crie o primeiro!" }
+                    if workoutes.is_empty() {
+                        div { class: "empty-state",
+                            p { "Você ainda não tem planos de treino. Crie o primeiro!" }
+                        }
+                    } else {
+
+                        div {
+                            for work in workoutes() {
+
+                                ListWorkout { work }
+                            }
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn ListWorkout(work: Workoute) -> Element {
+    println!("ListWorkout {:?}", work.name);
+    let formatted_date = work.date.format("%d/%m").to_string();
+
+    rsx! {
+        div { class: "workout-item",
+            //onclick:"viewWorkout(workout.id)",
+            div { class: "workout-header",
+                div { class: "workout-title", "{work.name}" }
+                div { class: "workout-date", "Criado em {formatted_date}" }
+            }
+            p {
+                if work.desc != "" {
+                    "{work.desc}"
+                } else {
+                    "Sem descrição"
+                }
+            }
+            div { style: "margin-top: 10px; font-size: 0.9rem; opacity: 0.8;",
+                "{work.qtd_exercise} exercícios"
             }
         }
     }
@@ -213,7 +270,9 @@ pub fn Stats() -> Element {
 }
 
 #[component]
-pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
+pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>, workoutes: Signal<Vec<Workoute>>) -> Element {
+    println!("Eu abri");
+
     let mut exercises = use_signal(|| vec![Exercise::default()]);
 
     let add_exercise = move |_| {
@@ -221,6 +280,10 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
             exercises.push(Exercise::default());
         });
     };
+
+    // Usar signals para armazenar os dados do formulário
+    let mut workout_name = use_signal(|| String::new());
+    let mut workout_description = use_signal(|| String::new());
 
     rsx! {
         div { id: "createWorkoutModal", class: "modal",
@@ -233,13 +296,37 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                     "x"
                 }
                 h2 { "Criar Novo Plano de Treino" }
-                form { id: "createWorkoutForm",
+                form {
+                    id: "createWorkoutForm",
+                    onsubmit: move |evt| {
+                        evt.prevent_default(); // Evita o comportamento padrão de submissão do formulário
+
+                        // 1. Crie uma nova instância do seu Workoute com os dados dos signals
+                        let new_workout = Workoute {
+                            name: workout_name.read().clone(), // .read() para ler o valor, .clone() para passar a propriedade
+                            desc: workout_description.read().clone(),
+                            // Adapte a data conforme sua lógica
+                            date: Local::now(),
+                            qtd_exercise: exercises.read().len() as u32,
+                            exercises: exercises.read().clone(), // .read() e .clone() para pegar a lista de exercícios
+                        };
+
+                        // 2. Use with_mut() para adicionar o novo workout à lista workoutes
+                        workoutes
+
+                            // 3. Altere a aba após salvar
+                            .with_mut(|workouts| {
+                                workouts.push(new_workout);
+                            });
+                        toggle_tabs.set(Tabs::Workouts);
+                    },
                     div { class: "form-group",
                         label { r#for: "workoutName", "Nome do Treino:" }
                         input {
                             r#type: "text",
                             id: "workoutName",
                             placeholder: "Ex: Treino A - Peito e Tríceps",
+                            oninput: move |evt| workout_name.set(evt.value()),
                         }
                     }
                     div { class: "form-group",
@@ -248,9 +335,11 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                             id: "workoutDescription",
                             rows: "3",
                             placeholder: "Foco do treino, dias da semana...",
+                            oninput: move |evt| workout_description.set(evt.value()),
                         }
                     }
 
+                    // ... (restante do código para os exercícios, está correto) ...
                     div { id: "exercisesContainer",
                         h3 { "Exercícios" }
                         for (index , exercise) in exercises().iter().enumerate() {
@@ -327,14 +416,7 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                         onclick: add_exercise,
                         "+ Adicionar Exercício"
                     }
-                    button {
-                        r#type: "submit",
-                        onclick: move |_| {
-                            toggle_tabs.set(Tabs::Workouts);
-                        },
-                        class: "btn btn-primary",
-                        "Salvar Plano"
-                    }
+                    button { r#type: "submit", class: "btn btn-primary", "Salvar Plano" }
                 }
             }
         }
