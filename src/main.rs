@@ -1,4 +1,4 @@
-use dioxus::{dioxus_core::ElementId, document::document, prelude::*};
+use dioxus::prelude::*;
 
 #[derive(Clone, PartialEq)]
 pub enum Tabs {
@@ -18,7 +18,6 @@ struct Exercise {
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
