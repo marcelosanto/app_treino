@@ -1,29 +1,11 @@
 use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 
-#[derive(Clone, PartialEq)]
-pub enum Tabs {
-    DashBoard,
-    Workouts,
-    Progress,
-    Stats,
-}
+mod models;
+use crate::models::{Exercise, Tabs, Workoute};
 
-#[derive(Default, Clone, PartialEq, Debug)]
-pub struct Exercise {
-    name: String,
-    sets: u32,
-    reps: String,
-}
-
-#[derive(Default, Clone, PartialEq, Debug)]
-pub struct Workoute {
-    name: String,
-    desc: String,
-    date: DateTime<Local>,
-    qtd_exercise: u32,
-    exercises: Vec<Exercise>,
-}
+mod components;
+use components::workout::workout::Workouts;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -197,123 +179,6 @@ pub fn DashBoard() -> Element {
                 div { id: "recentWorkouts", class: "workout-list",
                     div { class: "empty-state",
                         p { "Nenhum treino registrado ainda. Comece agora!" }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
-    println!("Workouts -> {:?}", workoutes());
-
-    let show_modal = use_signal(|| false);
-    let selected_workout = use_signal(|| None);
-
-    rsx! {
-        div {
-            div { class: "card",
-                h2 { "💪 Meus Planos de Treino" }
-                p { style: "margin-bottom: 20px; color: #555;",
-                    "Crie seus planos de treino aqui. Depois, vá para a aba "Registrar
-                    " para lançar seus resultados."
-                }
-                button {
-                    class: "btn btn-primary",
-                    onclick: move |_| { println!("Criar novo treino") },
-                    "+ Criar Novo Plano de Treino"
-                }
-                div { id: "workoutsList", class: "workout-list",
-                    if workoutes.is_empty() {
-                        div { class: "empty-state",
-                            p { "Você ainda não tem planos de treino. Crie o primeiro!" }
-                        }
-                    } else {
-
-                        div {
-                            for work in workoutes() {
-
-                                ListWorkout {
-                                    work,
-                                    show_modal,
-                                    selected_workout,
-                                }
-                            }
-                        }
-
-                        if show_modal() {
-                            ViewWorkout { work: selected_workout, show_modal }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-pub fn ListWorkout(
-    work: Workoute,
-    show_modal: Signal<bool>,
-    selected_workout: Signal<Option<Workoute>>,
-) -> Element {
-    println!("ListWorkout {:?}", work.name);
-    let formatted_date = work.date.format("%d/%m").to_string();
-    let cloned_workout = work.clone();
-    rsx! {
-        div {
-            class: "workout-item",
-            onclick: move |_| {
-                selected_workout.set(Some(cloned_workout.clone()));
-                show_modal.set(true)
-            },
-            div { class: "workout-header",
-                div { class: "workout-title", "{work.name}" }
-                div { class: "workout-date", "Criado em {formatted_date}" }
-            }
-            p {
-                if work.desc != "" {
-                    "{work.desc}"
-                } else {
-                    "Sem descrição"
-                }
-            }
-            div { style: "margin-top: 10px; font-size: 0.9rem; opacity: 0.8;",
-                "{work.qtd_exercise} exercícios"
-            }
-        }
-    }
-}
-
-#[component]
-pub fn ViewWorkout(work: Signal<Option<Workoute>>, show_modal: Signal<bool>) -> Element {
-    let work = work.unwrap();
-    rsx! {
-        div { class: "modal", style: "display: block;",
-            div { class: "modal-content",
-                span { class: "close", onclick: move |_| show_modal.set(false), "x" }
-                h2 { {work.name} }
-                p { {work.desc} }
-                div { class: "exercise-list",
-                    for exercise in work.exercises {
-                        div { class: "exercise-item",
-                            div { class: "exercise-name", "{exercise.name}" }
-                            p { "Meta: {exercise.sets} séries de {exercise.reps} reps" }
-                        }
-                    }
-
-
-
-                    button { class: "btn btn-primary",
-                        //onclick:"startWorkout(${workout.id})",
-                        "Registrar este Treino"
-                    }
-                    button {
-                        class: "btn btn-danger",
-                        //onclick:"deleteWorkout(${workout.id})",
-                        style: "margin-left: 10px;",
-                        "Excluir Treino"
                     }
                 }
             }
