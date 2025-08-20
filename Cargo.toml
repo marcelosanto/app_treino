@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.6.0", features = ["router"] }
+chrono = "0.4"
 
 [features]
 default = ["desktop"]
