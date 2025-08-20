@@ -7,7 +7,6 @@ pub enum Tabs {
     Workouts,
     Progress,
     Stats,
-    Modal,
 }
 
 #[derive(Default, Clone, PartialEq, Debug)]
@@ -50,6 +49,7 @@ fn Home() -> Element {
     let mut toggle_tabs = use_signal(|| Tabs::DashBoard);
     let mut workoutes = use_signal(|| vec![]);
     let now: DateTime<Local> = Local::now();
+    let mut show_modal = use_signal(|| false);
 
     if workoutes.is_empty() {
         workoutes.push(Workoute {
@@ -148,14 +148,16 @@ fn Home() -> Element {
                     Tabs::Stats => rsx! {
                         Stats {}
                     },
-                    Tabs::Modal => rsx! {
-                        CreateWorkoutModal { toggle_tabs, workoutes }
-                    },
+
+                }
+
+                if show_modal() {
+                    CreateWorkoutModal { workoutes, show_modal }
                 }
 
                 button {
                     class: "floating-add-btn",
-                    onclick: move |_| toggle_tabs.set(Tabs::Modal),
+                    onclick: move |_| show_modal.set(true),
                     title: "Criar novo plano de treino",
                     "+"
                 }
@@ -288,8 +290,7 @@ pub fn ListWorkout(
 pub fn ViewWorkout(work: Signal<Option<Workoute>>, show_modal: Signal<bool>) -> Element {
     let work = work.unwrap();
     rsx! {
-        div { class: "modal",
-            // style: "display: block;",
+        div { class: "modal", style: "display: block;",
             div { class: "modal-content",
                 span { class: "close", onclick: move |_| show_modal.set(false), "x" }
                 h2 { {work.name} }
@@ -356,7 +357,7 @@ pub fn Stats() -> Element {
 }
 
 #[component]
-pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>, workoutes: Signal<Vec<Workoute>>) -> Element {
+pub fn CreateWorkoutModal(workoutes: Signal<Vec<Workoute>>, show_modal: Signal<bool>) -> Element {
     println!("Eu abri");
 
     let mut exercises = use_signal(|| vec![Exercise::default()]);
@@ -372,12 +373,15 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>, workoutes: Signal<Vec<Worko
     let mut workout_description = use_signal(|| String::new());
 
     rsx! {
-        div { id: "createWorkoutModal", class: "modal",
+        div {
+            id: "createWorkoutModal",
+            class: "modal",
+            style: "display: block;",
             div { class: "modal-content",
                 span {
                     class: "close",
                     onclick: move |_| {
-                        toggle_tabs.set(Tabs::Workouts);
+                        show_modal.set(false);
                     },
                     "x"
                 }
@@ -404,7 +408,7 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>, workoutes: Signal<Vec<Worko
                             .with_mut(|workouts| {
                                 workouts.push(new_workout);
                             });
-                        toggle_tabs.set(Tabs::Workouts);
+                        show_modal.set(false);
                     },
                     div { class: "form-group",
                         label { r#for: "workoutName", "Nome do Treino:" }
