@@ -237,6 +237,45 @@ pub fn CreateWorkoutModal(toggle_tabs: Signal<Tabs>) -> Element {
                     }
                     div { id: "exercisesContainer",
                         h3 { "Exercícios" }
+                        div { style: "border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin: 15px 0; background: #f8f9fa;",
+                            div { class: "form-group",
+                                label { "Nome do Exercício:" }
+                                input {
+                                    r#type: "text",
+                                    class: "exercise-name-input",
+                                    //required
+                                    placeholder: "Ex: Supino Reto com Halteres",
+                                }
+                            }
+                            div { class: "form-group",
+                                label { "Séries Planejadas:" }
+                                input {
+                                    r#type: "number",
+                                    class: "exercise-sets-input",
+                                    //required
+                                    min: "1",
+                                    //required
+                                    value: "3",
+                                    //required
+                                    placeholder: "3",
+                                }
+                            }
+                            div { class: "form-group",
+                                label { " Repetições Alvo:" }
+                                input {
+                                    r#type: "text",
+                                    class: "exercise-reps-input",
+                                    //required
+                                    placeholder: "Ex: 8-12",
+                                }
+                            }
+                            button {
+                                r#type: "button",
+                                class: "btn btn-danger",
+                                onclick: move |_| println!("this.parentElement.remove()"),
+                                "Remover"
+                            }
+                        }
                     }
                     button {
                         r#type: "button",
