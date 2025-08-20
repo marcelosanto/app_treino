@@ -1,0 +1,98 @@
+name: Rust Dioxus Multi-Platform Build # Nome do workflow, visível no GitHub Actions
+
+on:
+  push:
+    branches: [main] # O workflow será executado em cada push para a branch 'main'
+  pull_request:
+    branches: [main] # O workflow também será executado em cada pull request para a branch 'main'
+
+jobs:
+  # Job para compilar para Linux e Windows
+  # Utiliza uma estratégia de matriz para executar o mesmo conjunto de passos em diferentes sistemas operacionais.
+  build_desktop:
+    runs-on: ${{ matrix.os }} # O runner será 'ubuntu-latest' ou 'windows-latest'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest] # Define os sistemas operacionais para a matriz
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4 # Baixa o código do seu repositório
+
+      - name: Instalar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable # Instala a toolchain Rust estável
+        # Para Windows, certifique-se de que o MSVC está instalado se for necessário
+        # with:
+        #   toolchain: stable
+        #   target: x86_64-pc-windows-msvc # Opcional, se precisar de um target específico
+
+      - name: Cache das Dependências do Cargo
+        uses: actions/cache@v4 # Usa o cache para as dependências do Cargo para builds mais rápidas
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/
+            ~/.cargo/git/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} # Chave do cache baseada no OS e no Cargo.lock
+          restore-keys: |
+            ${{ runner.os }}-cargo- # Tenta restaurar a chave mais recente se a principal não for encontrada
+
+      - name: Compilar Aplicação
+        run: cargo build --release # Executa a compilação em modo release
+
+      - name: Upload do Artefato Linux
+        if: runner.os == 'Linux' # Este passo só é executado no runner Linux
+        uses: actions/upload-artifact@v4 # Faz o upload do artefato compilado
+        with:
+          name: linux-build # Nome do artefato
+          path: target/release/<SEU_APP_NAME_LINUX> # Substitua <SEU_APP_NAME_LINUX> pelo nome do seu executável Linux (geralmente o nome do crate)
+          # Ex: path: target/release/meu_app_dioxus
+
+      - name: Upload do Artefato Windows
+        if: runner.os == 'Windows' # Este passo só é executado no runner Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: target/release/<SEU_APP_NAME_WINDOWS>.exe # Substitua <SEU_APP_NAME_WINDOWS> pelo nome do seu executável Windows
+          # Ex: path: target/release/meu_app_dioxus.exe
+
+  # Job para compilar para WebAssembly (WASM)
+  build_wasm:
+    runs-on: ubuntu-latest # Normalmente, o build WASM é feito em um runner Linux
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Instalar Rust Toolchain com Target WASM
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown # Adiciona o target WASM necessário
+
+      - name: Instalar wasm-pack
+        # wasm-pack é a ferramenta essencial para compilar Rust para WASM e gerar arquivos JS de 'cola'.
+        run: cargo install wasm-pack --force # --force garante que ele seja instalado ou atualizado
+
+      - name: Cache do Cargo e wasm-pack
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/
+            ~/.cargo/git/
+            target/
+            pkg/ # Inclui o diretório de saída do wasm-pack no cache
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-wasm-
+
+      - name: Compilar WASM com wasm-pack
+        run: wasm-pack build --target web --release # Compila para WASM com target 'web' (para browsers) em modo release
+
+      - name: Upload do Artefato WASM
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build # Nome do artefato
+          path: pkg/ # O diretório 'pkg' é onde o wasm-pack coloca os arquivos gerados (.wasm, .js, package.json, etc.)
