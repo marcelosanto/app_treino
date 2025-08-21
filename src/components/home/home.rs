@@ -20,54 +20,56 @@ pub fn Home() -> Element {
     let mut show_modal = use_signal(|| false);
 
     if workoutes.is_empty() {
-        workoutes.push(Workoute {
-            id: Uuid::new_v4(),
-            name: "Treino A".to_string(),
-            desc: "Treino A".to_string(),
-            date: now,
-            qtd_exercise: 3,
-            exercises: vec![
-                Exercise {
-                    id: Uuid::new_v4(),
-                    name: "Supino Reto".to_string(),
-                    sets: 3,
-                    reps: "12".to_string(),
-                },
-                Exercise {
-                    id: Uuid::new_v4(),
-                    name: "Desenvolvimento".to_string(),
-                    sets: 3,
-                    reps: "12".to_string(),
-                },
-            ],
-        });
+        use_effect(move || {
+            workoutes.push(Workoute {
+                id: Uuid::new_v4(),
+                name: "Treino A".to_string(),
+                desc: "Treino A".to_string(),
+                date: now,
+                qtd_exercise: 3,
+                exercises: vec![
+                    Exercise {
+                        id: Uuid::new_v4(),
+                        name: "Supino Reto".to_string(),
+                        sets: 3,
+                        reps: "12".to_string(),
+                    },
+                    Exercise {
+                        id: Uuid::new_v4(),
+                        name: "Desenvolvimento".to_string(),
+                        sets: 3,
+                        reps: "12".to_string(),
+                    },
+                ],
+            });
 
-        workoutes.push(Workoute {
-            id: Uuid::new_v4(),
-            name: "Treino B".to_string(),
-            desc: "Costas".to_string(),
-            date: now,
-            qtd_exercise: 3,
-            exercises: vec![
-                Exercise {
-                    id: Uuid::new_v4(),
-                    name: "Puxada".to_string(),
-                    sets: 3,
-                    reps: "12".to_string(),
-                },
-                Exercise {
-                    id: Uuid::new_v4(),
-                    name: "Remada".to_string(),
-                    sets: 3,
-                    reps: "12".to_string(),
-                },
-                Exercise {
-                    id: Uuid::new_v4(),
-                    name: "Remada Curvada".to_string(),
-                    sets: 3,
-                    reps: "12".to_string(),
-                },
-            ],
+            workoutes.push(Workoute {
+                id: Uuid::new_v4(),
+                name: "Treino B".to_string(),
+                desc: "Costas".to_string(),
+                date: now,
+                qtd_exercise: 3,
+                exercises: vec![
+                    Exercise {
+                        id: Uuid::new_v4(),
+                        name: "Puxada".to_string(),
+                        sets: 3,
+                        reps: "12".to_string(),
+                    },
+                    Exercise {
+                        id: Uuid::new_v4(),
+                        name: "Remada".to_string(),
+                        sets: 3,
+                        reps: "12".to_string(),
+                    },
+                    Exercise {
+                        id: Uuid::new_v4(),
+                        name: "Remada Curvada".to_string(),
+                        sets: 3,
+                        reps: "12".to_string(),
+                    },
+                ],
+            });
         });
     }
 

@@ -66,6 +66,7 @@ pub fn FormProgress(workout: Workoute) -> Element {
             id: "progressWorkoutForm",
             onsubmit: move |evt| {
                 evt.prevent_default();
+                println!("Dentro do form");
             },
             div { class: "form-group",
                 label { "Data do Treino:" }
