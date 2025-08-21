@@ -121,7 +121,7 @@ pub fn Home() -> Element {
                         Workouts { workoutes }
                     },
                     Tabs::Progress => rsx! {
-                        Progress {}
+                        Progress { workout: workoutes }
                     },
                     Tabs::Stats => rsx! {
                         Stats {}
