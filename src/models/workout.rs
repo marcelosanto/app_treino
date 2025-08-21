@@ -9,6 +9,7 @@ pub struct Exercise {
 
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct Workoute {
+    pub id: String,
     pub name: String,
     pub desc: String,
     pub date: DateTime<Local>,

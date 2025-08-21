@@ -40,6 +40,7 @@ pub fn CreateWorkoutModal(workoutes: Signal<Vec<Workoute>>, show_modal: Signal<b
 
                         // 1. Crie uma nova instância do seu Workoute com os dados dos signals
                         let new_workout = Workoute {
+                            id: "100".to_string(),
                             name: workout_name.read().clone(), // .read() para ler o valor, .clone() para passar a propriedade
                             desc: workout_description.read().clone(),
                             // Adapte a data conforme sua lógica

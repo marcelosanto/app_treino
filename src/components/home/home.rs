@@ -20,6 +20,7 @@ pub fn Home() -> Element {
 
     if workoutes.is_empty() {
         workoutes.push(Workoute {
+            id: "1".to_string(),
             name: "Treino A".to_string(),
             desc: "Treino A".to_string(),
             date: now,
@@ -39,6 +40,7 @@ pub fn Home() -> Element {
         });
 
         workoutes.push(Workoute {
+            id: "2".to_string(),
             name: "Treino B".to_string(),
             desc: "Costas".to_string(),
             date: now,
