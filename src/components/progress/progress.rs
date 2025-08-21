@@ -1,4 +1,13 @@
+use chrono::{DateTime, Local};
 use dioxus::prelude::*;
+
+struct RegProgress {
+    // id: DateTime<Local>, gerar id
+    workout_id: u32,
+    workout_name: String,
+    date: DateTime<Local>,
+    exercises: String,
+}
 
 #[component]
 pub fn Progress() -> Element {
