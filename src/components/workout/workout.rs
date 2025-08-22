@@ -44,7 +44,7 @@ pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
                         }
 
                         if show_modal() {
-                            ViewWorkout { work: selected_workout, show_modal }
+                            ViewWorkout { selected_workout, show_modal }
                         }
                     }
                 }
