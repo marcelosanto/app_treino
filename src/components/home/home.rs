@@ -9,7 +9,7 @@ use crate::{
         stats::stats::Stats,
         workout::{create_workout::CreateWorkoutModal, workout::Workouts},
     },
-    models::{Exercise, Tabs, Workoute},
+    models::{workout::SetData, Exercise, Tabs, Workoute},
 };
 
 #[component]
@@ -31,13 +31,13 @@ pub fn Home() -> Element {
                     Exercise {
                         id: Uuid::new_v4(),
                         name: "Supino Reto".to_string(),
-                        sets: 3,
+                        sets_data: vec![SetData::default()],
                         reps: "12".to_string(),
                     },
                     Exercise {
                         id: Uuid::new_v4(),
                         name: "Desenvolvimento".to_string(),
-                        sets: 3,
+                        sets_data: vec![SetData::default()],
                         reps: "12".to_string(),
                     },
                 ],
@@ -53,19 +53,19 @@ pub fn Home() -> Element {
                     Exercise {
                         id: Uuid::new_v4(),
                         name: "Puxada".to_string(),
-                        sets: 3,
+                        sets_data: vec![SetData::default()],
                         reps: "12".to_string(),
                     },
                     Exercise {
                         id: Uuid::new_v4(),
                         name: "Remada".to_string(),
-                        sets: 3,
+                        sets_data: vec![SetData::default()],
                         reps: "12".to_string(),
                     },
                     Exercise {
                         id: Uuid::new_v4(),
                         name: "Remada Curvada".to_string(),
-                        sets: 3,
+                        sets_data: vec![SetData::default()],
                         reps: "12".to_string(),
                     },
                 ],
@@ -131,7 +131,7 @@ pub fn Home() -> Element {
                         Workouts { workoutes }
                     },
                     Tabs::Progress => rsx! {
-                        Progress { workout: workoutes }
+                        Progress { all_workouts: workoutes }
                     },
                     Tabs::Stats => rsx! {
                         Stats {}
