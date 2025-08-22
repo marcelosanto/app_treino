@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 
-// Certifique-se de que Workoute, Exercise, SetData estão importados corretamente
 use crate::models::{Exercise, SetData, Workoute};
 
 #[component]
@@ -8,11 +7,7 @@ pub fn ViewWorkout(
     selected_workout: Signal<Option<Workoute>>,
     show_modal: Signal<bool>,
 ) -> Element {
-    // 🎯 A correção principal aqui: use `if let` para lidar com o `Option` de forma segura.
-    // Se `selected_workout` for `None`, a modal não mostrará o conteúdo do treino.
     if let Some(workout) = selected_workout.read().as_ref() {
-        // Criamos uma cópia base do workout para ser usada nas closures.
-        // Ela não será movida para as closures, mas clonada individualmente nelas.
         let base_workout_for_closures = workout.clone();
 
         rsx! {
@@ -64,21 +59,17 @@ pub fn ViewWorkout(
                     button {
                         class: "btn btn-primary",
                         onclick: move |_| {
-                            // 🎯 CLONE AQUI, DENTRO DA CLOSURE:
+
                             let workout_to_register = base_workout_for_closures.clone();
-                            // Aqui você pode adicionar a lógica para iniciar o registro do treino
-                            // Por exemplo, navegar para a aba de progresso e pré-selecionar este treino
-                            println!("Registrar treino: {:?}", workout_to_register.name);
-                            show_modal.set(false); // Fecha a modal
-                            // Você precisaria de um Signal compartilhado para mudar a aba.
-                            // Por exemplo: toggle_tabs.set(Tabs::Progress);
+
+                            show_modal.set(false);
                         },
                         "Registrar este Treino"
                     }
                     button {
                         class: "btn btn-danger",
                         // onclick: move |_| {
-                        //     // 🎯 CLONE AQUI, DENTRO DA CLOSURE:
+                        //     // Erro ao mover dados? fix no proximo push
                         //     let workout_to_delete = base_workout_for_closures.clone();
                         //     // Lógica para excluir o treino. Isso precisaria do Signal `workoutes` do componente pai.
                         //     println!("Excluir treino: {:?}", workout_to_delete.name);
