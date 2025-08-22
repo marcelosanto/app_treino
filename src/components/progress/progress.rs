@@ -61,12 +61,15 @@ pub fn Progress(workout: Signal<Vec<Workoute>>) -> Element {
 
 #[component]
 pub fn FormProgress(workout: Workoute) -> Element {
+    let mut meu_vec: Signal<Vec<(String, String)>> = use_signal(|| Vec::new());
+
     rsx! {
         form {
             id: "progressWorkoutForm",
             onsubmit: move |evt| {
                 evt.prevent_default();
                 println!("Dentro do form");
+                println!("{:?}", meu_vec);
             },
             div { class: "form-group",
                 label { "Data do Treino:" }
@@ -90,8 +93,7 @@ pub fn FormProgress(workout: Workoute) -> Element {
                         }
                         div { class: "sets-container", id: "sets-1",
                             //pecorrer as series dos exercicios
-                            for e in 1..=exercise.sets {
-
+                            for e in 0..exercise.sets {
                                 div { class: "set-input",
                                     span { "Série {e}" }
                                     input {
@@ -101,7 +103,10 @@ pub fn FormProgress(workout: Workoute) -> Element {
                                         class: "set-weight",
                                         placeholder: "Peso (kg)",
                                         required: true,
-                                        oninput: move |evt| println!("Serie{e} -> {} kg", evt.value()),
+                                        oninput: move |evt| {
+                                            meu_vec.push((exercise.id.to_string(), evt.value()));
+                                            println!("Serie{e} -> {} - {} kg", evt.value(), exercise.id)
+                                        },
                                     }
                                     input {
                                         r#type: "number",
@@ -112,6 +117,10 @@ pub fn FormProgress(workout: Workoute) -> Element {
                                         oninput: move |evt| println!("Serie{e} -> {} reps", evt.value()),
                                     }
                                 }
+                            }
+
+                            {
+                                println!("{:?}", meu_vec);
                             }
                         }
                                         // button {
