@@ -24,7 +24,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev pkg-config
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            pkg-config \
+            libssl-dev \
+            build-essential
 
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
@@ -55,77 +61,77 @@ jobs:
           name: windows-build
           path: target/release/app_treino.exe
 
-  build_wasm:
-    runs-on: ubuntu-latest
+  # build_wasm:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout do Código
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout do Código
+  #       uses: actions/checkout@v4
 
-      - name: Instalar Rust Toolchain com Target WASM
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
+  #     - name: Instalar Rust Toolchain com Target WASM
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         toolchain: stable
+  #         target: wasm32-unknown-unknown
 
-      - name: Instalar wasm-pack
-        run: cargo install wasm-pack --force
+  #     - name: Instalar wasm-pack
+  #       run: cargo install wasm-pack --force
 
-      - name: Cache do Cargo e wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/
-            ~/.cargo/git/
-            target/
-            pkg/
-          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-wasm-
+  #     - name: Cache do Cargo e wasm-pack
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/
+  #           ~/.cargo/git/
+  #           target/
+  #           pkg/
+  #         key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-cargo-wasm-
 
-      - name: Compilar WASM com wasm-pack
-        run: wasm-pack build --target web --release
+  #     - name: Compilar WASM com wasm-pack
+  #       run: wasm-pack build --target web --release
 
-      - name: Upload do Artefato WASM
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-build
-          path: pkg/
+  #     - name: Upload do Artefato WASM
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wasm-build
+  #         path: pkg/
 
-  build_android:
-    runs-on: ubuntu-latest
+  # build_android:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout do Código
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout do Código
+  #       uses: actions/checkout@v4
 
-      - name: Instalar Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: aarch64-linux-android
+  #     - name: Instalar Rust Toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         toolchain: stable
+  #         target: aarch64-linux-android
 
-      - name: Instalar cargo-apk
-        run: cargo install cargo-apk --force
+  #     - name: Instalar cargo-apk
+  #       run: cargo install cargo-apk --force
 
-      - name: Instalar Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          ndk: 25.2.9519653
-          cmake: 3.22.1
+  #     - name: Instalar Android SDK & NDK
+  #       uses: android-actions/setup-android@v3
+  #       with:
+  #         api-level: 34
+  #         ndk: 25.2.9519653
+  #         cmake: 3.22.1
 
-      - name: Configurar Variáveis de Ambiente
-        run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+  #     - name: Configurar Variáveis de Ambiente
+  #       run: |
+  #         echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+  #         echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
 
-      - name: Compilar APK
-        run: cargo apk build --release
+  #     - name: Compilar APK
+  #       run: cargo apk build --release
 
-      - name: Upload do Artefato Android
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: target/release/apk/*.apk
+  #     - name: Upload do Artefato Android
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: android-apk
+  #         path: target/release/apk/*.apk
