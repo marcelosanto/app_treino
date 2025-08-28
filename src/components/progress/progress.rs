@@ -2,27 +2,17 @@ use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 use uuid::Uuid;
 
-use crate::models::{Exercise, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
+use crate::models::{RecordedExerciseProgress, RegProgress, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
 
 // Estrutura para registrar o progresso de um treino (para salvar, não para edição em tempo real)
 // Esta struct pode ser usada para encapsular os dados do `recorded_progress_workout`
 // antes de serem persistidos ou enviados a um backend.
-struct RegProgress {
-    id: Uuid,
-    workout_id: Uuid,
-    workout_name: String,
-    date: DateTime<Local>,
-    exercises: Vec<RecordedExerciseProgress>, // Armazenará o progresso de cada exercício
-}
-
-struct RecordedExerciseProgress {
-    exercise_id: Uuid,
-    exercise_name: String,
-    recorded_sets: Vec<SetData>, // As séries realmente registradas
-}
 
 #[component]
-pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
+pub fn Progress(
+    all_workouts: Signal<Vec<Workoute>>,
+    reg_progress: Signal<Vec<RegProgress>>,
+) -> Element {
     // selected_progress_workout agora é o Signal para o treino que será EDITADO no formulário
     let mut selected_progress_workout = use_signal(|| None::<Workoute>);
 
@@ -106,10 +96,31 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                     // Botão para remover esta série específica
                     // Botão para adicionar uma SÉRIE EXTRA a ESTE EXERCÍCIO
 
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
+                    // Ou a data do input do formulário
+
 
 
 
                      // Ou a data do input do formulário
+
+
+
+
+
+
+
 
                             let reg_id = Uuid::new_v4();
                             let workout_id = workout.id;
@@ -163,7 +174,6 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                                                 class: "set-input",
                                                 style: "border: 1px dashed #ced4da; padding: 10px; margin-top: 10px; border-radius: 5px; display: flex; align-items: center; gap: 10px;",
                                                 span { "Série {set_idx + 1}" }
-
                                                 input {
                                                     r#type: "number",
                                                     step: "0.5",
