@@ -31,10 +31,20 @@ pub fn Home() -> Element {
                 exercises: vec![RecordedExerciseProgress {
                     exercise_id: Uuid::new_v4(),
                     exercise_name: "Supino Reto".to_string(),
-                    recorded_sets: vec![SetData {
-                        weight: 20.0,
-                        reps: 3,
-                    }],
+                    recorded_sets: vec![
+                        SetData {
+                            weight: 10.0,
+                            reps: 12,
+                        },
+                        SetData {
+                            weight: 15.0,
+                            reps: 12,
+                        },
+                        SetData {
+                            weight: 20.0,
+                            reps: 8,
+                        },
+                    ],
                 }],
             });
         });
