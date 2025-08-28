@@ -1,3 +1,4 @@
+use chrono::{Date, DateTime, Local};
 use dioxus::prelude::*;
 
 use crate::models::RegProgress;
@@ -40,14 +41,14 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
                         div { class: "workout-item dashboard-item",
                             div { class: "workout-header",
                                 div { class: "workout-title", {prog.workout_name} }
-                                div { class: "workout-date", {prog.date.to_string()} }
+                                div { class: "workout-date", {format_date(prog.date)} }
                             }
                             div { class: "exercise-list",
                                 for exerc in prog.exercises {
                                     div { style: "margin-bottom: 5px;",
-                                        strong { style: "color:white;", {exerc.exercise_name} }
+                                        strong { style: "color:white;", "{exerc.exercise_name}: " }
                                         for set in exerc.recorded_sets {
-                                            p { "{set.weight}x{set.reps}" }
+                                            "{set.reps}x{set.weight}kg, "
                                         }
                                                                         //${ex.sets.map(s => `${s.reps}x${s.weight}kg`).join(', ')
                                     }
@@ -64,4 +65,8 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
             }
         }
     }
+}
+
+fn format_date(date: DateTime<Local>) -> String {
+    date.format("%d-%m-%Y").to_string()
 }

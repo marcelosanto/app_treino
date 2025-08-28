@@ -2,9 +2,11 @@ name: Rust Dioxus Multi-Platform Build
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - "v*.*.*"   # dispara apenas quando criar tag (ex: v0.1.0)
+
+permissions:
+  contents: write
 
 jobs:
   build_desktop:
@@ -24,7 +26,14 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev pkg-config
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            libxdo-dev \
+            pkg-config \
+            libssl-dev \
+            build-essential
 
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
@@ -39,56 +48,41 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Compilar Aplicação
-        run: cargo build --release
+        run: cargo build --release --features desktop
 
       - name: Upload do Artefato Linux
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: target/release/app_treino # ✅ CORRIGIDO: Usando 'app_treino'
+          path: target/release/app_treino
 
       - name: Upload do Artefato Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: target/release/app_treino.exe # ✅ CORRIGIDO: Usando 'app_treino.exe'
+          path: target/release/app_treino.exe
 
-  build_wasm:
+  release:
     runs-on: ubuntu-latest
+    needs: [build_desktop]
 
     steps:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Instalar Rust Toolchain com Target WASM
-        uses: dtolnay/rust-toolchain@stable
+      - name: Baixar Artefatos
+        uses: actions/download-artifact@v4
         with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
+          path: dist
 
-      - name: Instalar wasm-pack
-        run: cargo install wasm-pack --force
-
-      - name: Cache do Cargo e wasm-pack
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/
-            ~/.cargo/git/
-            target/
-            pkg/
-          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-wasm-
-
-      - name: Compilar WASM com wasm-pack
-        run: wasm-pack build --target web --release
-
-      - name: Upload do Artefato WASM
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-build
-          path: pkg/
+      - name: Criar Release com gh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            ./dist/linux-build/app_treino \
+            ./dist/windows-build/app_treino.exe \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "Build gerado automaticamente pelo GitHub Actions"
