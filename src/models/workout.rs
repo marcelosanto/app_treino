@@ -48,3 +48,21 @@ impl Default for Workoute {
         }
     }
 }
+
+#[derive(Clone, PartialEq, Debug)]
+
+pub struct RegProgress {
+    pub id: Uuid,
+    pub workout_id: Uuid,
+    pub workout_name: String,
+    pub date: DateTime<Local>,
+    pub exercises: Vec<RecordedExerciseProgress>, // Armazenará o progresso de cada exercício
+}
+
+#[derive(Clone, PartialEq, Debug)]
+
+pub struct RecordedExerciseProgress {
+    pub exercise_id: Uuid,
+    pub exercise_name: String,
+    pub recorded_sets: Vec<SetData>, // As séries realmente registradas
+}
