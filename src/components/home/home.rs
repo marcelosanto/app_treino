@@ -9,7 +9,7 @@ use crate::{
         stats::stats::Stats,
         workout::{create_workout::CreateWorkoutModal, workout::Workouts},
     },
-    models::{workout::SetData, Exercise, Tabs, Workoute},
+    models::{workout::SetData, Exercise, RecordedExerciseProgress, RegProgress, Tabs, Workoute},
 };
 
 #[component]
@@ -19,12 +19,33 @@ pub fn Home() -> Element {
     let now: DateTime<Local> = Local::now();
     let mut show_modal = use_signal(|| false);
 
+    let mut progress_regs = use_signal(|| vec![]);
+
+    if progress_regs.is_empty() {
+        use_effect(move || {
+            progress_regs.push(RegProgress {
+                id: Uuid::new_v4(),
+                workout_id: Uuid::new_v4(),
+                workout_name: "Treino Peito".to_string(),
+                date: now,
+                exercises: vec![RecordedExerciseProgress {
+                    exercise_id: Uuid::new_v4(),
+                    exercise_name: "Supino Reto".to_string(),
+                    recorded_sets: vec![SetData {
+                        weight: 20.0,
+                        reps: 3,
+                    }],
+                }],
+            });
+        });
+    }
+
     if workoutes.is_empty() {
         use_effect(move || {
             workoutes.push(Workoute {
                 id: Uuid::new_v4(),
                 name: "Treino A".to_string(),
-                desc: "Treino A".to_string(),
+                desc: "Peito".to_string(),
                 date: now,
                 qtd_exercise: 3,
                 exercises: vec![
@@ -119,7 +140,7 @@ pub fn Home() -> Element {
 
                 match toggle_tabs() {
                     Tabs::DashBoard => rsx! {
-                        DashBoard {}
+                        DashBoard { progress: progress_regs }
                         button {
                             class: "floating-add-btn",
                             onclick: move |_| show_modal.set(true),
@@ -131,7 +152,7 @@ pub fn Home() -> Element {
                         Workouts { workoutes }
                     },
                     Tabs::Progress => rsx! {
-                        Progress { all_workouts: workoutes }
+                        Progress { all_workouts: workoutes, reg_progress: progress_regs }
                     },
                     Tabs::Stats => rsx! {
                         Stats {}
