@@ -129,17 +129,27 @@ jobs:
         with:
           path: dist
 
+      # - name: Criar Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ github.ref_name }}
+      #     release_name: "Release ${{ github.ref_name }}"
+      #     draft: false
+      #     prerelease: false
+
       - name: Criar Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: "Release ${{ github.ref_name }}"
-          draft: false
-          prerelease: false
-
+        run: |
+          gh release create ${{ github.ref_name }} \
+            ./target/release/app_treino* \
+            ./pkg/* \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "Build gerado automaticamente pelo GitHub Actions"
+            
       - name: Upload Linux Build
         uses: actions/upload-release-asset@v1
         env:
