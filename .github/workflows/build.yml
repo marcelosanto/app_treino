@@ -46,14 +46,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: target/release/app_treino # ✅ CORRIGIDO: Usando 'app_treino'
+          path: target/release/app_treino
 
       - name: Upload do Artefato Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: target/release/app_treino.exe # ✅ CORRIGIDO: Usando 'app_treino.exe'
+          path: target/release/app_treino.exe
 
   build_wasm:
     runs-on: ubuntu-latest
@@ -92,3 +92,40 @@ jobs:
         with:
           name: wasm-build
           path: pkg/
+
+  build_android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Instalar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: aarch64-linux-android
+
+      - name: Instalar cargo-apk
+        run: cargo install cargo-apk --force
+
+      - name: Instalar Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk: 25.2.9519653
+          cmake: 3.22.1
+
+      - name: Configurar Variáveis de Ambiente
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Compilar APK
+        run: cargo apk build --release
+
+      - name: Upload do Artefato Android
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: target/release/apk/*.apk
