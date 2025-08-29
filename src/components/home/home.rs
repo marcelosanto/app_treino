@@ -165,7 +165,7 @@ pub fn Home() -> Element {
                         Progress { all_workouts: workoutes, reg_progress: progress_regs }
                     },
                     Tabs::Stats => rsx! {
-                        Stats {}
+                        Stats { progress: progress_regs }
                     },
 
                 }
