@@ -1,28 +1,14 @@
-use chrono::{DateTime, Local};
+use chrono::Local;
 use dioxus::prelude::*;
 use uuid::Uuid;
 
-use crate::models::{Exercise, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
-
-// Estrutura para registrar o progresso de um treino (para salvar, não para edição em tempo real)
-// Esta struct pode ser usada para encapsular os dados do `recorded_progress_workout`
-// antes de serem persistidos ou enviados a um backend.
-struct RegProgress {
-    id: Uuid,
-    workout_id: Uuid,
-    workout_name: String,
-    date: DateTime<Local>,
-    exercises: Vec<RecordedExerciseProgress>, // Armazenará o progresso de cada exercício
-}
-
-struct RecordedExerciseProgress {
-    exercise_id: Uuid,
-    exercise_name: String,
-    recorded_sets: Vec<SetData>, // As séries realmente registradas
-}
+use crate::models::{RecordedExerciseProgress, RegProgress, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
 
 #[component]
-pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
+pub fn Progress(
+    all_workouts: Signal<Vec<Workoute>>,
+    reg_progress: Signal<Vec<RegProgress>>,
+) -> Element {
     // selected_progress_workout agora é o Signal para o treino que será EDITADO no formulário
     let mut selected_progress_workout = use_signal(|| None::<Workoute>);
 
@@ -60,7 +46,7 @@ pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
                         match selected_progress_workout() {
                             Some(w) => rsx! {
                                 // Passe o Signal mutável para FormProgress
-                                FormProgress { workout_to_record: selected_progress_workout }
+                                FormProgress { workout_to_record: selected_progress_workout, progress: reg_progress }
                             },
                             None => rsx! {
                                 p { "Nenhum treino escolhido" }
@@ -75,7 +61,10 @@ pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
 
 // O FormProgress agora recebe um Signal<Option<Workoute>> para poder modificá-lo
 #[component]
-pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
+pub fn FormProgress(
+    workout_to_record: Signal<Option<Workoute>>,
+    progress: Signal<Vec<RegProgress>>,
+) -> Element {
     // Remove meu_vec, pois agora os inputs se vinculam diretamente ao workout_to_record Signal
 
     // Formata a data atual para o input type="date"
@@ -96,20 +85,7 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                             println!("Progresso registrado para: {:?}", workout.name);
                             println!("Dados do progresso: {:?}", workout_to_record());
 
-                    // Exemplo de como você poderia criar um RegProgress
 
-                    // Opcional: Limpar o formulário após salvar
-                    // workout_to_record.set(None);
-                    // Adapte para a sua struct Exercise se "sets" for Vec<SetData>
-                    // Aqui, "exercise.sets_data.len()" representa o número de séries planejadas/existentes
-
-                    // Botão para remover esta série específica
-                    // Botão para adicionar uma SÉRIE EXTRA a ESTE EXERCÍCIO
-
-
-
-
-                     // Ou a data do input do formulário
 
                             let reg_id = Uuid::new_v4();
                             let workout_id = workout.id;
@@ -135,6 +111,8 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                                 exercises: exercises_progress,
                             };
                             println!("Objeto final de RegProgress: {:?}", final_reg_progress.id);
+
+                            progress.push(final_reg_progress);
                         },
                         div { class: "form-group",
                             label { "Data do Treino:" }
@@ -163,7 +141,6 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                                                 class: "set-input",
                                                 style: "border: 1px dashed #ced4da; padding: 10px; margin-top: 10px; border-radius: 5px; display: flex; align-items: center; gap: 10px;",
                                                 span { "Série {set_idx + 1}" }
-
                                                 input {
                                                     r#type: "number",
                                                     step: "0.5",
