@@ -1,30 +1,48 @@
-use chrono::{Date, DateTime, Local};
+use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 
 use crate::models::RegProgress;
 
 #[component]
 pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
-    println!("DashBoard: {:?}", progress);
+    let soma_reps: i32 = progress() // ou o tipo numérico apropriado para `reps`
+        .iter()
+        .flat_map(|f| &f.exercises) // Achata a lista de exercícios de cada 'RegProgress'
+        .flat_map(|x| &x.recorded_sets) // Achata a lista de séries de cada 'RecordedExerciseProgress'
+        .map(|set| set.reps as i32) // Extrai o valor de 'reps' de cada série
+        .sum();
+
+    let soma_pesos: i32 = progress() // ou o tipo numérico apropriado para `reps`
+        .iter()
+        .flat_map(|f| &f.exercises) // Achata a lista de exercícios de cada 'RegProgress'
+        .flat_map(|x| &x.recorded_sets) // Achata a lista de séries de cada 'RecordedExerciseProgress'
+        .map(|set| set.weight as i32) // Extrai o valor de 'reps' de cada série
+        .sum();
+
+    let total_exercicios: usize = progress()
+        .iter()
+        .map(|reg_progress| reg_progress.exercises.len()) // Para cada treino, obtém o número de exercícios
+        .sum();
+
     rsx! {
         div { id: "dashboard", class: "tab-content active",
             div { class: "card",
                 h2 { "📊 Visão Geral Rápida" }
                 div { class: "stats-grid",
                     div { class: "stat-card",
-                        div { class: "stat-value", id: "totalWorkouts", "0" }
+                        div { class: "stat-value", "{progress().len()}" }
                         div { class: "stat-label", "Treinos Realizados" }
                     }
                     div { class: "stat-card",
-                        div { class: "stat-value", id: "totalVolume", "0" }
+                        div { class: "stat-value", "{soma_pesos}" }
                         div { class: "stat-label", "Volume Total (kg)" }
                     }
                     div { class: "stat-card",
-                        div { class: "stat-value", id: "totalSets", "0" }
-                        div { class: "stat-label", "Sets Completados" }
+                        div { class: "stat-value", "{soma_reps}" }
+                        div { class: "stat-label", "Series Completadas" }
                     }
                     div { class: "stat-card",
-                        div { class: "stat-value", id: "totalExercises", "0" }
+                        div { class: "stat-value", "{total_exercicios}" }
                         div { class: "stat-label", "Exercícios Diferentes" }
                     }
                 }
@@ -33,8 +51,10 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
             div { class: "card",
                 h3 { "🔥 Últimos Treinos Registrados" }
                 div { id: "recentWorkouts", class: "workout-list",
-                    div { class: "empty-state",
-                        p { "Nenhum treino registrado ainda. Comece agora!" }
+                    if progress().is_empty() {
+                        div { class: "empty-state",
+                            p { "Nenhum treino registrado ainda. Comece agora!" }
+                        }
                     }
 
                     for prog in progress() {
@@ -47,17 +67,15 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
                                 for exerc in prog.exercises {
                                     div { style: "margin-bottom: 5px;",
                                         strong { style: "color:white;", "{exerc.exercise_name}: " }
-                                        for set in exerc.recorded_sets {
-                                            "{set.reps}x{set.weight}kg, "
+                                        for (index , set) in exerc.recorded_sets.iter().enumerate() {
+                                            if index == 0 {
+                                                "{set.reps}x{set.weight}kg"
+                                            } else {
+                                                " - {set.reps}x{set.weight}kg "
+                                            }
                                         }
-                                                                        //${ex.sets.map(s => `${s.reps}x${s.weight}kg`).join(', ')
                                     }
                                 }
-
-                            //     ${log.exercises.map(ex => `
-                            //         <div style="margin-bottom: 5px;">
-                            //             <strong style="color:white;">${ex.name}:</strong> ${ex.sets.map(s => `${s.reps}x${s.weight}kg`).join(', ')}
-                            //         </div>`).join('')}
                             }
                         }
                     }
