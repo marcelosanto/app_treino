@@ -19,7 +19,6 @@ jobs:
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      # --- CORREÇÃO ADICIONADA AQUI ---
       - name: Add Windows Target for Cross-Compilation
         run: rustup target add x86_64-pc-windows-gnu
 
@@ -59,11 +58,12 @@ jobs:
 
       - name: Compilar Aplicação Windows (cross)
         run: dx build --release --platform desktop --target x86_64-pc-windows-gnu
-
+      
+      # --- CORREÇÃO ADICIONADA AQUI ---
       - name: Copiar builds para dist
         run: |
           mkdir -p dist/linux-build
-          cp target/dx/app_treino/release/linux/app dist/linux-build/app_treino
+          cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino
 
           mkdir -p dist/windows-build
           cp target/dx/app_treino/release/windows/app.exe dist/windows-build/app_treino.exe
