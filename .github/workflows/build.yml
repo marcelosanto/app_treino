@@ -32,10 +32,9 @@ jobs:
             libssl-dev \
             build-essential \
             mingw-w64 \
-            zip \
-            libxdo-dev
-          # Verificar se libxdo está instalada
-          pkg-config --modversion libxdo || (echo "libxdo-dev installation failed" && exit 1)
+            binutils-mingw-w64 \
+            zip
+          # ⚠️ removi libxdo-dev pois não é necessário para builds normais
 
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
@@ -60,7 +59,9 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig
           LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu:/usr/local/lib
-        run: dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
+        run: |
+          dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
+          ls -la target/x86_64-unknown-linux-gnu/release/
 
       - name: Compilar Aplicação Windows (cross)
         env:
@@ -70,34 +71,23 @@ jobs:
           dx build --release --platform desktop --target x86_64-pc-windows-gnu --verbose
           ls -la target/x86_64-pc-windows-gnu/release/
 
-      - name: Debug Output Paths
-        run: |
-          echo "Listing contents of target/dx/app_treino/release/"
-          ls -la target/dx/app_treino/release/ || echo "Directory target/dx/app_treino/release/ not found"
-          echo "Listing contents of target/dx/app_treino/release/linux/ if exists"
-          ls -la target/dx/app_treino/release/linux/ || echo "Directory linux/ does not exist"
-          echo "Listing contents of target/dx/app_treino/release/windows/ if exists"
-          ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
-
       - name: Preparar Artefatos para Release
         run: |
-          # Prepara o artefato do Linux
+          # Linux
           mkdir -p dist/linux-build
-          if [ -d "target/dx/app_treino/release/linux/app" ]; then
-            cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
+          if [ -f "target/x86_64-unknown-linux-gnu/release/app_treino" ]; then
+            cp target/x86_64-unknown-linux-gnu/release/app_treino dist/linux-build/app_treino_linux
           else
-            echo "Linux build not found, failing..."
+            echo "Linux build não encontrado!"
             exit 1
           fi
 
-          # Prepara e compacta o artefato do Windows
+          # Windows (sem zip)
           mkdir -p dist/windows-build
-          if [ -d "target/dx/app_treino/release/windows/app" ]; then
-            cp -r target/dx/app_treino/release/windows/app dist/windows-build/app_treino_windows
-            cd dist/windows-build
-            zip -r app_treino_windows.zip app_treino_windows
+          if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
+            cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
           else
-            echo "Windows build not found, skipping..."
+            echo "Windows build não encontrado, pulando..."
           fi
 
       - name: Upload do Artefato Linux
@@ -108,7 +98,6 @@ jobs:
           if-no-files-found: error
 
       - name: Upload do Artefato Windows
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
@@ -133,9 +122,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mv dist/linux-build/app_treino_linux dist/app_treino_linux
-          mv dist/windows-build/app_treino_windows.zip dist/app_treino_windows.zip || echo "Windows artifact not found, skipping..."
+          mv dist/windows-build/app_treino_windows.exe dist/app_treino_windows.exe || echo "Windows artifact não encontrado, pulando..."
           gh release create ${{ github.ref_name }} \
             dist/app_treino_linux \
-            dist/app_treino_windows.zip#Windows \
+            dist/app_treino_windows.exe \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
