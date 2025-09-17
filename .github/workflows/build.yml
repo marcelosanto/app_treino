@@ -34,6 +34,7 @@ jobs:
             libssl-dev \
             build-essential \
             mingw-w64   # necessário para cross-compile Windows
+            zip         # Adiciona o utilitário zip
 
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
@@ -58,15 +59,18 @@ jobs:
 
       - name: Compilar Aplicação Windows (cross)
         run: dx build --release --platform desktop --target x86_64-pc-windows-gnu
-      
-      # --- CORREÇÃO ADICIONADA AQUI ---
-      - name: Copiar builds para dist
-        run: |
-          mkdir -p dist/linux-build
-          cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino
 
+      - name: Preparar Artefatos para Release
+        run: |
+          # Prepara o artefato do Linux
+          mkdir -p dist/linux-build
+          cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
+
+          # Prepara e compacta o artefato do Windows
           mkdir -p dist/windows-build
-          cp target/dx/app_treino/release/x86_64-pc-windows-gnu/app.exe dist/windows-build/app_treino.exe
+          mv target/dx/app_treino/release/x86_64-pc-windows-gnu dist/windows-build/app_treino_windows
+          cd dist/windows-build
+          zip -r app_treino_windows.zip app_treino_windows
 
       - name: Upload do Artefato Linux
         uses: actions/upload-artifact@v4
@@ -98,7 +102,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ github.ref_name }} \
-            ./dist/linux-build/app_treino \
-            ./dist/windows-build/app_treino.exe \
+            ./dist/linux-build/app_treino_linux \
+            ./dist/windows-build/app_treino_windows.zip \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
