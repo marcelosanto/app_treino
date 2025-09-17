@@ -19,6 +19,10 @@ jobs:
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      # --- CORREÇÃO ADICIONADA AQUI ---
+      - name: Add Windows Target for Cross-Compilation
+        run: rustup target add x86_64-pc-windows-gnu
+
       - name: Instalar Dependências do Sistema
         run: |
           sudo apt-get update
