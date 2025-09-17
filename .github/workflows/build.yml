@@ -66,7 +66,7 @@ jobs:
           cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino
 
           mkdir -p dist/windows-build
-          cp target/dx/app_treino/release/windows/app.exe dist/windows-build/app_treino.exe
+          cp target/dx/app_treino/release/x86_64-pc-windows-gnu/app.exe dist/windows-build/app_treino.exe
 
       - name: Upload do Artefato Linux
         uses: actions/upload-artifact@v4
