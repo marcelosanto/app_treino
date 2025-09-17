@@ -57,12 +57,17 @@ jobs:
       - name: Compilar Aplicação Linux
         run: dx build --release --platform desktop --target x86_64-unknown-linux-gnu
 
-      # --- CORREÇÃO ADICIONADA AQUI ---
       - name: Compilar Aplicação Windows (cross)
         env:
-          # Aponta para o compilador de recursos do Windows para o empacotamento correto.
           WINDRES_PATH: /usr/bin/x86_64-w64-mingw32-windres
-        run: dx build --release --platform desktop --target x86_64-pc-windows-gnu
+        run: dx build --release --platform desktop --target x86_64-pc-windows-gnu --verbose
+
+      - name: Debug Output Paths
+        run: |
+          echo "Listing contents of target/dx/app_treino/release/"
+          ls -la target/dx/app_treino/release/
+          echo "Listing contents of target/dx/app_treino/release/windows/ if exists"
+          ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
 
       - name: Preparar Artefatos para Release
         run: |
@@ -70,9 +75,9 @@ jobs:
           mkdir -p dist/linux-build
           cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
 
-          # Prepara e compacta o artefato do Windows
+          # Prepara e compacta o artefato do Windows (corrigido: usa /windows/app)
           mkdir -p dist/windows-build
-          mv target/dx/app_treino/release/x86_64-pc-windows-gnu dist/windows-build/app_treino_windows
+          cp -r target/dx/app_treino/release/windows/app dist/windows-build/app_treino_windows
           cd dist/windows-build
           zip -r app_treino_windows.zip app_treino_windows
 
