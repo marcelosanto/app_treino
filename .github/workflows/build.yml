@@ -18,9 +18,8 @@ jobs:
 
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Add Windows Target for Cross-Compilation
-        run: rustup target add x86_64-pc-windows-gnu
+        with:
+          targets: x86_64-pc-windows-gnu  # Adiciona o target Windows diretamente
 
       - name: Instalar Dependências do Sistema
         run: |
@@ -29,7 +28,6 @@ jobs:
             libgtk-3-dev \
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
-            libxdo-dev \
             pkg-config \
             libssl-dev \
             build-essential \
@@ -48,24 +46,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Baixar Dioxus CLI
+      - name: Baixar e Instalar Dioxus CLI
         run: |
           curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz -o dx.tar.gz
           tar -xzf dx.tar.gz
           sudo mv dx /usr/local/bin/
+          dx --version  # Verifica a instalação
 
       - name: Compilar Aplicação Linux
-        run: dx build --release --platform desktop --target x86_64-unknown-linux-gnu
+        run: dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
 
       - name: Compilar Aplicação Windows (cross)
         env:
           WINDRES_PATH: /usr/bin/x86_64-w64-mingw32-windres
-        run: dx build --release --platform desktop --target x86_64-pc-windows-gnu --verbose
+          # Define o linker explicitamente para Windows
+          RUSTFLAGS: -C linker=x86_64-w64-mingw32-gcc
+        run: |
+          dx build --release --platform desktop --target x86_64-pc-windows-gnu --verbose
+          # Verifica se o binário foi gerado
+          ls -la target/x86_64-pc-windows-gnu/release/
 
       - name: Debug Output Paths
         run: |
           echo "Listing contents of target/dx/app_treino/release/"
-          ls -la target/dx/app_treino/release/
+          ls -la target/dx/app_treino/release/ || echo "Directory target/dx/app_treino/release/ not found"
+          echo "Listing contents of target/dx/app_treino/release/linux/ if exists"
+          ls -la target/dx/app_treino/release/linux/ || echo "Directory linux/ does not exist"
           echo "Listing contents of target/dx/app_treino/release/windows/ if exists"
           ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
 
@@ -73,25 +79,37 @@ jobs:
         run: |
           # Prepara o artefato do Linux
           mkdir -p dist/linux-build
-          cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
+          if [ -d "target/dx/app_treino/release/linux/app" ]; then
+            cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
+          else
+            echo "Linux build not found, skipping..."
+            exit 1
+          fi
 
-          # Prepara e compacta o artefato do Windows (corrigido: usa /windows/app)
+          # Prepara e compacta o artefato do Windows
           mkdir -p dist/windows-build
-          cp -r target/dx/app_treino/release/windows/app dist/windows-build/app_treino_windows
-          cd dist/windows-build
-          zip -r app_treino_windows.zip app_treino_windows
+          if [ -d "target/dx/app_treino/release/windows/app" ]; then
+            cp -r target/dx/app_treino/release/windows/app dist/windows-build/app_treino_windows
+            cd dist/windows-build
+            zip -r app_treino_windows.zip app_treino_windows
+          else
+            echo "Windows build not found, skipping..."
+          fi
 
       - name: Upload do Artefato Linux
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/linux-build
+          path: dist/linux-build/
+          if-no-files-found: error
 
       - name: Upload do Artefato Windows
+        if: success()  # Executa apenas se o passo anterior for bem-sucedido
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/windows-build
+          path: dist/windows-build/
+          if-no-files-found: warn  # Não falha se o Windows build estiver ausente
 
   release:
     runs-on: ubuntu-latest
@@ -110,8 +128,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Move os artefatos para o diretório correto
+          mv dist/linux-build/app_treino_linux dist/app_treino_linux
+          mv dist/windows-build/app_treino_windows.zip dist/app_treino_windows.zip || echo "Windows artifact not found, skipping..."
+
+          # Cria a release apenas com os artefatos disponíveis
           gh release create ${{ github.ref_name }} \
-            ./dist/linux-build/app_treino_linux \
-            ./dist/windows-build/app_treino_windows.zip \
+            dist/app_treino_linux \
+            dist/app_treino_windows.zip#Windows \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
