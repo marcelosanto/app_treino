@@ -61,14 +61,14 @@ jobs:
       - name: Baixar Dioxus CLI (Linux)
         if: runner.os == 'Linux'
         run: |
-          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu.tar.gz -o dx.tar.gz
+          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz -o dx.tar.gz
           tar -xzf dx.tar.gz
           sudo mv dx /usr/local/bin/
 
       - name: Baixar Dioxus CLI (Windows)
         if: runner.os == 'Windows'
         run: |
-          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-pc-windows-msvc.zip -o dx.zip
+          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-pc-windows-msvc-v0.6.3.zip -o dx.zip
           tar -xf dx.zip
           echo "${{ github.workspace }}" >> $env:GITHUB_PATH
 
