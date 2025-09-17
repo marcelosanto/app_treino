@@ -19,3 +19,7 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[build]
+# Embute os arquivos de public/ no binário final
+embed_assets = true
