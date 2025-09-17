@@ -45,7 +45,9 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Cache das Dependências do Cargo
+      # 🔹 Cache das dependências Rust (Linux)
+      - name: Cache das Dependências do Cargo (Linux)
+        if: runner.os == 'Linux'
         uses: actions/cache@v4
         with:
           path: |
@@ -57,24 +59,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # 🔥 Baixa o Dioxus CLI pronto (sem compilar)
+      # 🔥 Baixar Dioxus CLI (Linux)
       - name: Baixar Dioxus CLI (Linux)
         if: runner.os == 'Linux'
         run: |
-          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz -o dx.tar.gz
+          curl -L --fail https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz -o dx.tar.gz
           tar -xzf dx.tar.gz
           sudo mv dx /usr/local/bin/
 
+      # 🔥 Baixar Dioxus CLI (Windows)
       - name: Baixar Dioxus CLI (Windows)
         if: runner.os == 'Windows'
         run: |
-          curl -L https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-pc-windows-msvc-v0.6.3.zip -o dx.zip
-          tar -xf dx.zip
+          curl -L --fail https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-pc-windows-msvc-v0.6.3.zip -o dx.zip
+          powershell -Command "Expand-Archive -Path dx.zip -DestinationPath . -Force"
           echo "${{ github.workspace }}" >> $env:GITHUB_PATH
 
+      # 🔨 Compilar aplicação
       - name: Compilar Aplicação
         run: dx build --release --platform desktop
 
+      # 📦 Upload artefatos Linux
       - name: Upload do Artefato Linux
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
@@ -82,6 +87,7 @@ jobs:
           name: linux-build
           path: dist/app_treino
 
+      # 📦 Upload artefatos Windows
       - name: Upload do Artefato Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -102,12 +108,17 @@ jobs:
         with:
           path: dist
 
+      # 🔍 Listar arquivos baixados para depuração
+      - name: Listar arquivos baixados
+        run: ls -R dist
+
+      # 🏷️ Criar release
       - name: Criar Release com gh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ github.ref_name }} \
-            ./dist/linux-build/app_treino \
+            ./dist/linux-build/app_treino/app_treino \
             ./dist/windows-build/app_treino.exe \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
