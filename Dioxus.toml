@@ -1,26 +1,22 @@
 [application]
-
 [web.app]
-
-# HTML title tag content
 title = "app_treino"
 
-# include `assets` in web platform
 [web.resource]
+# Inclua os arquivos CSS explicitamente
+style = ["assets/tailwind.css", "assets/main.css"]
 
-# Additional CSS style files
-style = []
-
-# Additional JavaScript files
-script = []
+# Inclua o favicon, se necessário
+# favicon = "assets/favicon.ico"
 
 [web.resource.dev]
-
-# Javascript code file
-# serve: [dev-server] only
+# Para desenvolvimento, se necessário
+style = ["assets/tailwind.css", "assets/main.css"]
 script = []
 
 [build]
-# Embute os arquivos de public/ no binário final
 embed_assets = true
 out_dir = "dist"
+
+# Especificar o diretório de assets
+asset_dir = "assets"
