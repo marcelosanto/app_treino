@@ -19,7 +19,7 @@ jobs:
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-gnu,x86_64-unknown-linux-musl
+          targets: x86_64-pc-windows-gnu,x86_64-unknown-linux-musl,x86_64-unknown-linux-gnu
 
       - name: Instalar Dependências do Sistema
         run: |
@@ -66,16 +66,27 @@ jobs:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig
           LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu:/usr/local/lib
         run: |
+          echo "Attempting build with x86_64-unknown-linux-musl..."
           if pkg-config --modversion libxdo; then
             echo "libxdo found, building with default features..."
-            dx build --release --platform desktop --target x86_64-unknown-linux-musl --verbose
+            dx build --release --platform desktop --target x86_64-unknown-linux-musl --verbose || {
+              echo "musl build failed, trying x86_64-unknown-linux-gnu..."
+              dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
+            }
           else
             echo "libxdo not found, building without tray-icon features..."
-            dx build --release --platform desktop --target x86_64-unknown-linux-musl --no-default-features --features "desktop" --verbose
+            dx build --release --platform desktop --target x86_64-unknown-linux-musl --no-default-features --features "desktop" --verbose || {
+              echo "musl build failed, trying x86_64-unknown-linux-gnu..."
+              dx build --release --platform desktop --target x86_64-unknown-linux-gnu --no-default-features --features "desktop" --verbose
+            }
           fi
           # Verificar o formato do binário Linux
           if [ -f "target/dx/app_treino/release/linux/app/app_treino" ]; then
             file target/dx/app_treino/release/linux/app/app_treino
+            if ! file target/dx/app_treino/release/linux/app/app_treino | grep -q "ELF 64-bit"; then
+              echo "Error: target/dx/app_treino/release/linux/app/app_treino is not an ELF 64-bit executable"
+              exit 1
+            fi
           else
             echo "Linux executable not found, failing..."
             exit 1
@@ -93,6 +104,10 @@ jobs:
             cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
             echo "Windows .exe copied to dist/windows-build/app_treino_windows.exe"
             file dist/windows-build/app_treino_windows.exe
+            if ! file dist/windows-build/app_treino_windows.exe | grep -q "PE32+"; then
+              echo "Error: dist/windows-build/app_treino_windows.exe is not a PE32+ executable"
+              exit 1
+            fi
           else
             echo "Windows executable not found, skipping..."
           fi
@@ -124,7 +139,6 @@ jobs:
             cp target/dx/app_treino/release/linux/app/app_treino dist/linux-build/app_treino_linux
             echo "Linux executable copied to dist/linux-build/app_treino_linux"
             file dist/linux-build/app_treino_linux
-            # Verificar se é um executável ELF
             if ! file dist/linux-build/app_treino_linux | grep -q "ELF 64-bit"; then
               echo "Error: dist/linux-build/app_treino_linux is not an ELF 64-bit executable"
               exit 1
@@ -138,7 +152,6 @@ jobs:
           if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
             echo "Windows .exe already copied to dist/windows-build/app_treino_windows.exe"
             file dist/windows-build/app_treino_windows.exe
-            # Verificar se é um executável PE32+
             if ! file dist/windows-build/app_treino_windows.exe | grep -q "PE32+"; then
               echo "Error: dist/windows-build/app_treino_windows.exe is not a PE32+ executable"
               exit 1
