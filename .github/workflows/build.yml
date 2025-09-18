@@ -34,7 +34,6 @@ jobs:
             libssl-dev \
             build-essential \
             mingw-w64 \
-            zip \
             libxdo-dev
           # Verificar instalação do libxdo-dev
           if ! pkg-config --modversion libxdo; then
@@ -82,17 +81,16 @@ jobs:
           dx build --release --platform desktop --target x86_64-pc-windows-gnu --no-default-features --features "desktop" --verbose || echo "Windows build failed, continuing..."
           # Corrigir diretório de bundling para Windows
           if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
-            mkdir -p target/dx/app_treino/release/windows/app/assets
-            cp target/x86_64-pc-windows-gnu/release/app_treino.exe target/dx/app_treino/release/windows/app/
-            cp -r assets/* target/dx/app_treino/release/windows/app/assets/ || echo "Failed to copy assets, continuing with .exe only..."
-            echo "Windows bundle manually created at target/dx/app_treino/release/windows/app"
+            mkdir -p dist/windows-build
+            cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino.exe
+            echo "Windows .exe copied to dist/windows-build/app_treino.exe"
           else
-            echo "Windows executable not found, skipping bundle creation..."
+            echo "Windows executable not found, skipping..."
           fi
           echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
           ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
-          echo "Listing contents of target/dx/app_treino/release/windows/"
-          ls -la target/dx/app_treino/release/windows/ || echo "Windows app directory not found"
+          echo "Listing contents of dist/windows-build/"
+          ls -la dist/windows-build/ || echo "Windows dist directory not found"
 
       - name: Debug Output Paths
         run: |
@@ -102,6 +100,8 @@ jobs:
           ls -la target/dx/app_treino/release/linux/ || echo "Directory linux/ does not exist"
           echo "Listing contents of target/dx/app_treino/release/windows/ if exists"
           ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
+          echo "Listing contents of dist/windows-build/"
+          ls -la dist/windows-build/ || echo "Windows dist directory not found"
 
       - name: Preparar Artefatos para Release
         run: |
@@ -115,12 +115,10 @@ jobs:
           fi
 
           # Prepara o artefato do Windows (apenas o .exe)
-          mkdir -p dist/windows-build
-          if [ -f "target/dx/app_treino/release/windows/app/app_treino.exe" ]; then
-            cp target/dx/app_treino/release/windows/app/app_treino.exe dist/windows-build/app_treino.exe
-            echo "Windows .exe copied to dist/windows-build/app_treino.exe"
+          if [ -f "dist/windows-build/app_treino.exe" ]; then
+            echo "Windows .exe already copied to dist/windows-build/app_treino.exe"
           else
-            echo "Windows .exe not found, skipping..."
+            echo "Windows .exe not found in dist/windows-build/, skipping..."
           fi
 
       - name: Upload do Artefato Linux
