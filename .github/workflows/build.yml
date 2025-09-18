@@ -79,7 +79,7 @@ jobs:
           RUSTFLAGS: -C linker=x86_64-w64-mingw32-gcc
         run: |
           dx build --release --platform desktop --target x86_64-pc-windows-gnu --no-default-features --features "desktop" --verbose || echo "Windows build failed, continuing..."
-          # Corrigir diretório de bundling para Windows
+          # Copiar o .exe diretamente para o diretório de destino
           if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
             mkdir -p dist/windows-build
             cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino.exe
@@ -102,15 +102,18 @@ jobs:
           ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
           echo "Listing contents of dist/windows-build/"
           ls -la dist/windows-build/ || echo "Windows dist directory not found"
+          echo "Listing contents of target/dx/app_treino/release/linux/app/"
+          ls -la target/dx/app_treino/release/linux/app/ || echo "Linux app directory not found"
 
       - name: Preparar Artefatos para Release
         run: |
-          # Prepara o artefato do Linux
+          # Prepara o artefato do Linux (apenas o executável)
           mkdir -p dist/linux-build
-          if [ -d "target/dx/app_treino/release/linux/app" ]; then
-            cp -r target/dx/app_treino/release/linux/app dist/linux-build/app_treino_linux
+          if [ -f "target/dx/app_treino/release/linux/app/app_treino" ]; then
+            cp target/dx/app_treino/release/linux/app/app_treino dist/linux-build/app_treino
+            echo "Linux executable copied to dist/linux-build/app_treino"
           else
-            echo "Linux build not found, failing..."
+            echo "Linux executable not found, failing..."
             exit 1
           fi
 
@@ -153,7 +156,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mv dist/linux-build/app_treino_linux dist/app_treino_linux
+          mv dist/linux-build/app_treino dist/app_treino
           # Verifica se o artefato do Windows existe antes de incluí-lo
           WINDOWS_ARTIFACT=""
           if [ -f "dist/windows-build/app_treino.exe" ]; then
@@ -163,7 +166,7 @@ jobs:
             echo "Windows .exe not found, skipping..."
           fi
           gh release create ${{ github.ref_name }} \
-            dist/app_treino_linux \
+            dist/app_treino#Linux \
             $WINDOWS_ARTIFACT \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
