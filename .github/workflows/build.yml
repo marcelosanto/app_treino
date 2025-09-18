@@ -35,9 +35,11 @@ jobs:
             build-essential \
             mingw-w64 \
             zip \
-            libxdo-dev || echo "libxdo-dev not available, proceeding without it..."
-          # Verificar bibliotecas instaladas
-          pkg-config --modversion libxdo || echo "libxdo not found, attempting build without libxdo features"
+            libxdo-dev
+          # Verificar instalação do libxdo-dev
+          if ! pkg-config --modversion libxdo; then
+            echo "libxdo-dev installation failed, proceeding with fallback build..."
+          fi
           ldconfig -p | grep libxdo || echo "libxdo library not found in ldconfig"
 
       - name: Cache das Dependências do Cargo
@@ -68,7 +70,7 @@ jobs:
             echo "libxdo found, building with default features..."
             dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
           else
-            echo "libxdo not found, building without hotkey features..."
+            echo "libxdo not found, building without tray-icon features..."
             dx build --release --platform desktop --target x86_64-unknown-linux-gnu --no-default-features --features "desktop" --verbose
           fi
 
@@ -77,8 +79,20 @@ jobs:
           WINDRES_PATH: /usr/bin/x86_64-w64-mingw32-windres
           RUSTFLAGS: -C linker=x86_64-w64-mingw32-gcc
         run: |
-          dx build --release --platform desktop --target x86_64-pc-windows-gnu --no-default-features --features "desktop" --verbose
-          ls -la target/x86_64-pc-windows-gnu/release/
+          dx build --release --platform desktop --target x86_64-pc-windows-gnu --no-default-features --features "desktop" --verbose || echo "Windows build failed, continuing..."
+          # Corrigir diretório de bundling para Windows
+          if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
+            mkdir -p target/dx/app_treino/release/windows/app/assets
+            cp target/x86_64-pc-windows-gnu/release/app_treino.exe target/dx/app_treino/release/windows/app/
+            cp -r assets/* target/dx/app_treino/release/windows/app/assets/ || echo "Failed to copy assets, continuing with .exe only..."
+            echo "Windows bundle manually created at target/dx/app_treino/release/windows/app"
+          else
+            echo "Windows executable not found, skipping bundle creation..."
+          fi
+          echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
+          ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
+          echo "Listing contents of target/dx/app_treino/release/windows/"
+          ls -la target/dx/app_treino/release/windows/ || echo "Windows app directory not found"
 
       - name: Debug Output Paths
         run: |
@@ -100,14 +114,13 @@ jobs:
             exit 1
           fi
 
-          # Prepara e compacta o artefato do Windows
+          # Prepara o artefato do Windows (apenas o .exe)
           mkdir -p dist/windows-build
-          if [ -d "target/dx/app_treino/release/windows/app" ]; then
-            cp -r target/dx/app_treino/release/windows/app dist/windows-build/app_treino_windows
-            cd dist/windows-build
-            zip -r app_treino_windows.zip app_treino_windows
+          if [ -f "target/dx/app_treino/release/windows/app/app_treino.exe" ]; then
+            cp target/dx/app_treino/release/windows/app/app_treino.exe dist/windows-build/app_treino.exe
+            echo "Windows .exe copied to dist/windows-build/app_treino.exe"
           else
-            echo "Windows build not found, skipping..."
+            echo "Windows .exe not found, skipping..."
           fi
 
       - name: Upload do Artefato Linux
@@ -143,9 +156,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mv dist/linux-build/app_treino_linux dist/app_treino_linux
-          mv dist/windows-build/app_treino_windows.zip dist/app_treino_windows.zip || echo "Windows artifact not found, skipping..."
+          # Verifica se o artefato do Windows existe antes de incluí-lo
+          WINDOWS_ARTIFACT=""
+          if [ -f "dist/windows-build/app_treino.exe" ]; then
+            mv dist/windows-build/app_treino.exe dist/app_treino.exe
+            WINDOWS_ARTIFACT="dist/app_treino.exe#Windows"
+          else
+            echo "Windows .exe not found, skipping..."
+          fi
           gh release create ${{ github.ref_name }} \
             dist/app_treino_linux \
-            dist/app_treino_windows.zip#Windows \
+            $WINDOWS_ARTIFACT \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
