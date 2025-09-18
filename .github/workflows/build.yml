@@ -19,7 +19,7 @@ jobs:
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-gnu
+          targets: x86_64-pc-windows-gnu,x86_64-unknown-linux-musl
 
       - name: Instalar Dependências do Sistema
         run: |
@@ -34,6 +34,7 @@ jobs:
             libssl-dev \
             build-essential \
             mingw-w64 \
+            musl-tools \
             libxdo-dev
           # Verificar instalação do libxdo-dev
           if ! pkg-config --modversion libxdo; then
@@ -67,10 +68,17 @@ jobs:
         run: |
           if pkg-config --modversion libxdo; then
             echo "libxdo found, building with default features..."
-            dx build --release --platform desktop --target x86_64-unknown-linux-gnu --verbose
+            dx build --release --platform desktop --target x86_64-unknown-linux-musl --verbose
           else
             echo "libxdo not found, building without tray-icon features..."
-            dx build --release --platform desktop --target x86_64-unknown-linux-gnu --no-default-features --features "desktop" --verbose
+            dx build --release --platform desktop --target x86_64-unknown-linux-musl --no-default-features --features "desktop" --verbose
+          fi
+          # Verificar o formato do binário Linux
+          if [ -f "target/dx/app_treino/release/linux/app/app_treino" ]; then
+            file target/dx/app_treino/release/linux/app/app_treino
+          else
+            echo "Linux executable not found, failing..."
+            exit 1
           fi
 
       - name: Compilar Aplicação Windows (cross)
@@ -82,8 +90,9 @@ jobs:
           # Copiar o .exe diretamente para o diretório de destino
           if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
             mkdir -p dist/windows-build
-            cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino.exe
-            echo "Windows .exe copied to dist/windows-build/app_treino.exe"
+            cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
+            echo "Windows .exe copied to dist/windows-build/app_treino_windows.exe"
+            file dist/windows-build/app_treino_windows.exe
           else
             echo "Windows executable not found, skipping..."
           fi
@@ -102,6 +111,8 @@ jobs:
           ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
           echo "Listing contents of dist/windows-build/"
           ls -la dist/windows-build/ || echo "Windows dist directory not found"
+          echo "Listing contents of dist/linux-build/"
+          ls -la dist/linux-build/ || echo "Linux dist directory not found"
           echo "Listing contents of target/dx/app_treino/release/linux/app/"
           ls -la target/dx/app_treino/release/linux/app/ || echo "Linux app directory not found"
 
@@ -110,16 +121,28 @@ jobs:
           # Prepara o artefato do Linux (apenas o executável)
           mkdir -p dist/linux-build
           if [ -f "target/dx/app_treino/release/linux/app/app_treino" ]; then
-            cp target/dx/app_treino/release/linux/app/app_treino dist/linux-build/app_treino
-            echo "Linux executable copied to dist/linux-build/app_treino"
+            cp target/dx/app_treino/release/linux/app/app_treino dist/linux-build/app_treino_linux
+            echo "Linux executable copied to dist/linux-build/app_treino_linux"
+            file dist/linux-build/app_treino_linux
+            # Verificar se é um executável ELF
+            if ! file dist/linux-build/app_treino_linux | grep -q "ELF 64-bit"; then
+              echo "Error: dist/linux-build/app_treino_linux is not an ELF 64-bit executable"
+              exit 1
+            fi
           else
             echo "Linux executable not found, failing..."
             exit 1
           fi
 
           # Prepara o artefato do Windows (apenas o .exe)
-          if [ -f "dist/windows-build/app_treino.exe" ]; then
-            echo "Windows .exe already copied to dist/windows-build/app_treino.exe"
+          if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
+            echo "Windows .exe already copied to dist/windows-build/app_treino_windows.exe"
+            file dist/windows-build/app_treino_windows.exe
+            # Verificar se é um executável PE32+
+            if ! file dist/windows-build/app_treino_windows.exe | grep -q "PE32+"; then
+              echo "Error: dist/windows-build/app_treino_windows.exe is not a PE32+ executable"
+              exit 1
+            fi
           else
             echo "Windows .exe not found in dist/windows-build/, skipping..."
           fi
@@ -156,17 +179,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mv dist/linux-build/app_treino dist/app_treino
-          # Verifica se o artefato do Windows existe antes de incluí-lo
+          # Verificar e renomear o artefato Linux
+          if [ -f "dist/linux-build/app_treino_linux" ]; then
+            mv dist/linux-build/app_treino_linux dist/app_treino_linux
+            echo "Linux executable moved to dist/app_treino_linux"
+            file dist/app_treino_linux
+            if ! file dist/app_treino_linux | grep -q "ELF 64-bit"; then
+              echo "Error: dist/app_treino_linux is not an ELF 64-bit executable"
+              exit 1
+            fi
+          else
+            echo "Linux executable not found in dist/linux-build/, failing..."
+            exit 1
+          fi
+
+          # Verificar e renomear o artefato Windows
           WINDOWS_ARTIFACT=""
-          if [ -f "dist/windows-build/app_treino.exe" ]; then
-            mv dist/windows-build/app_treino.exe dist/app_treino.exe
-            WINDOWS_ARTIFACT="dist/app_treino.exe#Windows"
+          if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
+            mv dist/windows-build/app_treino_windows.exe dist/app_treino_windows.exe
+            echo "Windows .exe moved to dist/app_treino_windows.exe"
+            file dist/app_treino_windows.exe
+            if ! file dist/app_treino_windows.exe | grep -q "PE32+"; then
+              echo "Error: dist/app_treino_windows.exe is not a PE32+ executable"
+              exit 1
+            fi
+            WINDOWS_ARTIFACT="dist/app_treino_windows.exe#Windows"
           else
             echo "Windows .exe not found, skipping..."
           fi
+
+          # Criar a release
           gh release create ${{ github.ref_name }} \
-            dist/app_treino#Linux \
+            dist/app_treino_linux#Linux \
             $WINDOWS_ARTIFACT \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
