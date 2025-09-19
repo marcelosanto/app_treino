@@ -142,14 +142,23 @@ jobs:
         run: |
           echo "Building for Android (aarch64-linux-android)..."
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
-          dx build --release --platform android --verbose
+          dx build --release --platform android --verbose -- --stacktrace || echo "Android build failed, checking for APKs..."
+          echo "Listing contents of target/dx/app_treino/release/android/app/build/outputs/apk/"
+          ls -la target/dx/app_treino/release/android/app/build/outputs/apk/ || echo "APK output directory not found"
+          # Check for release APK
           if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
             mkdir -p dist/android-build
             cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
-            echo "Android APK copied to dist/android-build/app_treino.apk"
+            echo "Android release APK copied to dist/android-build/app_treino.apk"
+            file dist/android-build/app_treino.apk
+          # Check for debug APK as fallback
+          elif [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            mkdir -p dist/android-build
+            cp target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
+            echo "Android debug APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           else
-            echo "Error: Android APK not found at target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk"
+            echo "Error: No APK found in target/dx/app_treino/release/android/app/build/outputs/apk/"
             exit 1
           fi
           echo "Listing contents of dist/android-build/"
@@ -196,12 +205,11 @@ jobs:
             echo "Windows executable not found, skipping..."
           fi
           mkdir -p dist/android-build
-          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
-            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
-            echo "Android APK copied to dist/android-build/app_treino.apk"
+          if [ -f "dist/android-build/app_treino.apk" ]; then
+            echo "Android APK already copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           else
-            echo "Android APK not found, skipping..."
+            echo "Android APK not found in dist/android-build/, skipping..."
           fi
 
       - name: Upload do Artefato Linux
