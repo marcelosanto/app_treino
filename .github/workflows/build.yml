@@ -36,7 +36,6 @@ jobs:
             mingw-w64 \
             musl-tools \
             libxdo-dev
-          # Verificar instalação do libxdo-dev
           if ! pkg-config --modversion libxdo; then
             echo "libxdo-dev installation failed, proceeding with fallback build..."
           fi
@@ -74,7 +73,6 @@ jobs:
             echo "libxdo not found, building without tray-icon features..."
             dx build --release --platform desktop --target x86_64-unknown-linux-gnu --no-default-features --features "desktop" --verbose
           fi
-          # Verificar o formato do binário Linux
           if [ -f "target/x86_64-unknown-linux-gnu/release/app_treino" ]; then
             file target/x86_64-unknown-linux-gnu/release/app_treino
             if ! file target/x86_64-unknown-linux-gnu/release/app_treino | grep -q "ELF 64-bit"; then
@@ -85,6 +83,15 @@ jobs:
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
+          echo "Listing contents of target/dx/app_treino/release/linux/app/assets/"
+          ls -la target/dx/app_treino/release/linux/app/assets/ || echo "Assets directory not found"
+          # Verify main.css is present
+          if [ -f "target/dx/app_treino/release/linux/app/assets/main-"*".css" ]; then
+            echo "main.css found in assets directory"
+          else
+            echo "Error: main.css not found in target/dx/app_treino/release/linux/app/assets/"
+            exit 1
+          fi
 
       - name: Compilar Aplicação Windows (cross)
         env:
@@ -92,7 +99,6 @@ jobs:
           RUSTFLAGS: -C linker=x86_64-w64-mingw32-gcc
         run: |
           dx build --release --platform desktop --target x86_64-pc-windows-gnu --no-default-features --features "desktop" --verbose || echo "Windows build failed, continuing..."
-          # Copiar o .exe diretamente para o diretório de destino
           if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
             mkdir -p dist/windows-build
             cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
@@ -129,7 +135,6 @@ jobs:
 
       - name: Preparar Artefatos para Release
         run: |
-          # Prepara o artefato do Linux (apenas o executável)
           mkdir -p dist/linux-build
           if [ -f "target/x86_64-unknown-linux-gnu/release/app_treino" ]; then
             cp target/x86_64-unknown-linux-gnu/release/app_treino dist/linux-build/app_treino_linux
@@ -139,12 +144,22 @@ jobs:
               echo "Error: dist/linux-build/app_treino_linux is not an ELF 64-bit executable"
               exit 1
             fi
+            # Copy assets to linux-build artifact
+            mkdir -p dist/linux-build/assets
+            cp -r target/dx/app_treino/release/linux/app/assets/* dist/linux-build/assets/
+            echo "Assets copied to dist/linux-build/assets/"
+            ls -la dist/linux-build/assets/
+            # Verify main.css is present
+            if [ -f "dist/linux-build/assets/main-"*".css" ]; then
+              echo "main.css found in dist/linux-build/assets/"
+            else
+              echo "Error: main.css not found in dist/linux-build/assets/"
+              exit 1
+            fi
           else
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
-
-          # Prepara o artefato do Windows (apenas o .exe)
           if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
             echo "Windows .exe already copied to dist/windows-build/app_treino_windows.exe"
             file dist/windows-build/app_treino_windows.exe
@@ -188,7 +203,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Verificar e renomear o artefato Linux
           if [ -f "dist/linux-build/app_treino_linux" ]; then
             mv dist/linux-build/app_treino_linux dist/app_treino_linux
             echo "Linux executable moved to dist/app_treino_linux"
@@ -201,8 +215,6 @@ jobs:
             echo "Linux executable not found in dist/linux-build/, failing..."
             exit 1
           fi
-
-          # Verificar e renomear o artefato Windows
           WINDOWS_ARTIFACT=""
           if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
             mv dist/windows-build/app_treino_windows.exe dist/app_treino_windows.exe
@@ -216,8 +228,6 @@ jobs:
           else
             echo "Windows .exe not found, skipping..."
           fi
-
-          # Criar a release
           gh release create ${{ github.ref_name }} \
             dist/app_treino_linux#Linux \
             $WINDOWS_ARTIFACT \

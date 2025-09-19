@@ -4,19 +4,17 @@ title = "app_treino"
 
 [web.resource]
 # Inclua os arquivos CSS explicitamente
-style = ["assets/tailwind.css", "assets/main.css"]
+style = "assets/main.css"
 
 # Inclua o favicon, se necessário
 # favicon = "assets/favicon.ico"
 
 [web.resource.dev]
 # Para desenvolvimento, se necessário
-style = ["assets/tailwind.css", "assets/main.css"]
+style = "assets/main.css"
 script = []
 
 [build]
 embed_assets = true
 out_dir = "dist"
-
-# Especificar o diretório de assets
 asset_dir = "assets"
