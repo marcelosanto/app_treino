@@ -91,6 +91,14 @@ jobs:
           sudo mv dx /usr/local/bin/
           dx --version
 
+      - name: Configurar Keystore para APK (Opcional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > app_treino.keystore
+          ls -la app_treino.keystore
+
       - name: Compilar Aplicação Linux
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig
@@ -159,18 +167,20 @@ jobs:
             echo "Error: Linker not found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
             exit 1
           fi
-          # Try release build
-          echo "Attempting release build..."
-          cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile || echo "Cargo release build failed, continuing..."
-          if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
-            echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
-            dx build --release --platform android --verbose -- --stacktrace || echo "Android release build failed, checking for APKs..."
+          # Try debug build first (matching local success)
+          echo "Attempting debug build..."
+          cargo build --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_debug_error.log || echo "Cargo debug build failed, see cargo_debug_error.log"
+          cat cargo_debug_error.log
+          if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
+            echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
+            dx build --debug --platform android --verbose -- --stacktrace || echo "Android debug build failed, checking for APKs..."
           else
-            echo "Rust release binary not found, trying debug build..."
-            cargo build --target aarch64-linux-android --verbose --no-default-features --features mobile || echo "Cargo debug build failed, continuing..."
-            if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
-              echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
-              dx build --debug --platform android --verbose -- --stacktrace || echo "Android debug build failed, checking for APKs..."
+            echo "Rust debug binary not found, trying release build..."
+            cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_release_error.log || echo "Cargo release build failed, see cargo_release_error.log"
+            cat cargo_release_error.log
+            if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
+              echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
+              dx build --release --platform android --verbose -- --stacktrace || echo "Android release build failed, checking for APKs..."
             else
               echo "Error: No Rust binary found in target/aarch64-linux-android/"
               ls -la target/aarch64-linux-android/ || echo "Target directory not found"
@@ -179,19 +189,25 @@ jobs:
           fi
           echo "Listing contents of target/aarch64-linux-android/"
           ls -la target/aarch64-linux-android/ || echo "Target directory not found"
+          echo "Listing contents of target/aarch64-linux-android/debug/"
+          ls -la target/aarch64-linux-android/debug/ || echo "Debug directory not found"
+          echo "Listing contents of target/aarch64-linux-android/release/"
+          ls -la target/aarch64-linux-android/release/ || echo "Release directory not found"
+          echo "Listing contents of target/dx/app_treino/release/android/"
+          ls -la target/dx/app_treino/release/android/ || echo "Android build output not found"
           echo "Listing contents of target/dx/app_treino/release/android/app/build/outputs/apk/"
           ls -la target/dx/app_treino/release/android/app/build/outputs/apk/ || echo "APK output directory not found"
-          # Check for release APK
-          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
-            mkdir -p dist/android-build
-            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
-            echo "Android release APK copied to dist/android-build/app_treino.apk"
-            file dist/android-build/app_treino.apk
-          # Check for debug APK
-          elif [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          # Check for debug APK first (matching local success)
+          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
             mkdir -p dist/android-build
             cp target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
             echo "Android debug APK copied to dist/android-build/app_treino.apk"
+            file dist/android-build/app_treino.apk
+          # Check for release APK
+          elif [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
+            mkdir -p dist/android-build
+            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
+            echo "Android release APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           else
             echo "Error: No APK found in target/dx/app_treino/release/android/app/build/outputs/apk/"
