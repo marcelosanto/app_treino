@@ -41,6 +41,12 @@ jobs:
           fi
           ldconfig -p | grep libxdo || echo "libxdo library not found in ldconfig"
 
+      - name: Instalar JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Instalar Android SDK e NDK
         uses: android-actions/setup-android@v3
         with:
@@ -142,7 +148,26 @@ jobs:
         run: |
           echo "Building for Android (aarch64-linux-android)..."
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
-          dx build --release --platform android --verbose -- --stacktrace || echo "Android build failed, checking for APKs..."
+          # Try release build
+          echo "Attempting release build..."
+          cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile || echo "Cargo release build failed, continuing..."
+          if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
+            echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
+            dx build --release --platform android --verbose -- --stacktrace || echo "Android release build failed, checking for APKs..."
+          else
+            echo "Rust release binary not found, trying debug build..."
+            cargo build --target aarch64-linux-android --verbose --no-default-features --features mobile || echo "Cargo debug build failed, continuing..."
+            if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
+              echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
+              dx build --debug --platform android --verbose -- --stacktrace || echo "Android debug build failed, checking for APKs..."
+            else
+              echo "Error: No Rust binary found in target/aarch64-linux-android/"
+              ls -la target/aarch64-linux-android/ || echo "Target directory not found"
+              exit 1
+            fi
+          fi
+          echo "Listing contents of target/aarch64-linux-android/"
+          ls -la target/aarch64-linux-android/ || echo "Target directory not found"
           echo "Listing contents of target/dx/app_treino/release/android/app/build/outputs/apk/"
           ls -la target/dx/app_treino/release/android/app/build/outputs/apk/ || echo "APK output directory not found"
           # Check for release APK
@@ -151,7 +176,7 @@ jobs:
             cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
             echo "Android release APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
-          # Check for debug APK as fallback
+          # Check for debug APK
           elif [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
             mkdir -p dist/android-build
             cp target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
