@@ -41,6 +41,13 @@ jobs:
           fi
           ldconfig -p | grep libxdo || echo "libxdo library not found in ldconfig"
 
+      - name: Instalar Android SDK e NDK
+        uses: android-actions/setup-android@v3
+        with:
+          sdk-version: '34'
+          ndk-version: '25.2.9519653'
+          accept-license: true
+
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
         with:
@@ -83,15 +90,6 @@ jobs:
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
-          echo "Listing contents of target/dx/app_treino/release/linux/app/assets/"
-          ls -la target/dx/app_treino/release/linux/app/assets/ || echo "Assets directory not found"
-          # Verify main.css is present
-          if [ -f "target/dx/app_treino/release/linux/app/assets/main-"*".css" ]; then
-            echo "main.css found in assets directory"
-          else
-            echo "Error: main.css not found in target/dx/app_treino/release/linux/app/assets/"
-            exit 1
-          fi
 
       - name: Compilar Aplicação Windows (cross)
         env:
@@ -111,30 +109,30 @@ jobs:
           else
             echo "Windows executable not found, skipping..."
           fi
-          echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
-          ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
-          echo "Listing contents of dist/windows-build/"
-          ls -la dist/windows-build/ || echo "Windows dist directory not found"
+
+      - name: Compilar Aplicação Android
+        run: |
+          dx build --release --platform android
+          # O APK é gerado em target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk
+          mkdir -p dist/android-build
+          cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
+          echo "Android APK copied to dist/android-build/app_treino.apk"
+          file dist/android-build/app_treino.apk
 
       - name: Debug Output Paths
         run: |
           echo "Listing contents of target/dx/app_treino/release/"
           ls -la target/dx/app_treino/release/ || echo "Directory target/dx/app_treino/release/ not found"
-          echo "Listing contents of target/dx/app_treino/release/linux/ if exists"
-          ls -la target/dx/app_treino/release/linux/ || echo "Directory linux/ does not exist"
-          echo "Listing contents of target/dx/app_treino/release/windows/ if exists"
-          ls -la target/dx/app_treino/release/windows/ || echo "Directory windows/ does not exist"
-          echo "Listing contents of dist/windows-build/"
-          ls -la dist/windows-build/ || echo "Windows dist directory not found"
-          echo "Listing contents of dist/linux-build/"
-          ls -la dist/linux-build/ || echo "Linux dist directory not found"
-          echo "Listing contents of target/dx/app_treino/release/linux/app/"
-          ls -la target/dx/app_treino/release/linux/app/ || echo "Linux app directory not found"
           echo "Listing contents of target/x86_64-unknown-linux-gnu/release/"
           ls -la target/x86_64-unknown-linux-gnu/release/ || echo "Linux build output not found"
+          echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
+          ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
+          echo "Listing contents of dist/android-build/"
+          ls -la dist/android-build/ || echo "Android dist directory not found"
 
       - name: Preparar Artefatos para Release
         run: |
+          # Prepara o artefato do Linux (apenas o executável)
           mkdir -p dist/linux-build
           if [ -f "target/x86_64-unknown-linux-gnu/release/app_treino" ]; then
             cp target/x86_64-unknown-linux-gnu/release/app_treino dist/linux-build/app_treino_linux
@@ -144,31 +142,33 @@ jobs:
               echo "Error: dist/linux-build/app_treino_linux is not an ELF 64-bit executable"
               exit 1
             fi
-            # Copy assets to linux-build artifact
-            mkdir -p dist/linux-build/assets
-            cp -r target/dx/app_treino/release/linux/app/assets/* dist/linux-build/assets/
-            echo "Assets copied to dist/linux-build/assets/"
-            ls -la dist/linux-build/assets/
-            # Verify main.css is present
-            if [ -f "dist/linux-build/assets/main-"*".css" ]; then
-              echo "main.css found in dist/linux-build/assets/"
-            else
-              echo "Error: main.css not found in dist/linux-build/assets/"
-              exit 1
-            fi
           else
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
-          if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
-            echo "Windows .exe already copied to dist/windows-build/app_treino_windows.exe"
+
+          # Prepara o artefato do Windows (apenas o .exe)
+          mkdir -p dist/windows-build
+          if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
+            cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
+            echo "Windows .exe copied to dist/windows-build/app_treino_windows.exe"
             file dist/windows-build/app_treino_windows.exe
             if ! file dist/windows-build/app_treino_windows.exe | grep -q "PE32+"; then
               echo "Error: dist/windows-build/app_treino_windows.exe is not a PE32+ executable"
               exit 1
             fi
           else
-            echo "Windows .exe not found in dist/windows-build/, skipping..."
+            echo "Windows executable not found, skipping..."
+          fi
+
+          # Prepara o artefato do Android (APK)
+          mkdir -p dist/android-build
+          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
+            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
+            echo "Android APK copied to dist/android-build/app_treino.apk"
+            file dist/android-build/app_treino.apk
+          else
+            echo "Android APK not found, skipping..."
           fi
 
       - name: Upload do Artefato Linux
@@ -184,6 +184,14 @@ jobs:
         with:
           name: windows-build
           path: dist/windows-build/
+          if-no-files-found: warn
+
+      - name: Upload do Artefato Android
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: dist/android-build/
           if-no-files-found: warn
 
   release:
@@ -203,22 +211,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Linux
           if [ -f "dist/linux-build/app_treino_linux" ]; then
             mv dist/linux-build/app_treino_linux dist/app_treino_linux
-            echo "Linux executable moved to dist/app_treino_linux"
             file dist/app_treino_linux
             if ! file dist/app_treino_linux | grep -q "ELF 64-bit"; then
               echo "Error: dist/app_treino_linux is not an ELF 64-bit executable"
               exit 1
             fi
           else
-            echo "Linux executable not found in dist/linux-build/, failing..."
+            echo "Linux executable not found, failing..."
             exit 1
           fi
+
+          # Windows
           WINDOWS_ARTIFACT=""
           if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
             mv dist/windows-build/app_treino_windows.exe dist/app_treino_windows.exe
-            echo "Windows .exe moved to dist/app_treino_windows.exe"
             file dist/app_treino_windows.exe
             if ! file dist/app_treino_windows.exe | grep -q "PE32+"; then
               echo "Error: dist/app_treino_windows.exe is not a PE32+ executable"
@@ -228,8 +237,21 @@ jobs:
           else
             echo "Windows .exe not found, skipping..."
           fi
+
+          # Android
+          ANDROID_ARTIFACT=""
+          if [ -f "dist/android-build/app_treino.apk" ]; then
+            mv dist/android-build/app_treino.apk dist/app_treino.apk
+            file dist/app_treino.apk
+            ANDROID_ARTIFACT="dist/app_treino.apk#Android"
+          else
+            echo "Android APK not found, skipping..."
+          fi
+
+          # Criar a release
           gh release create ${{ github.ref_name }} \
             dist/app_treino_linux#Linux \
             $WINDOWS_ARTIFACT \
+            $ANDROID_ARTIFACT \
             --title "Release ${{ github.ref_name }}" \
             --notes "Build gerado automaticamente pelo GitHub Actions"
