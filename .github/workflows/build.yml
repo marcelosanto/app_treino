@@ -45,7 +45,7 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           sdk-version: '34'
-          ndk-version: '25.2.9519653'
+          ndk-version: '26.3.11579264'
           accept-license: true
 
       - name: Configurar Rust Target para Android
@@ -57,11 +57,11 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          if [ -d "$ANDROID_HOME/ndk/25.2.9519653" ]; then
-            echo "NDK found at $ANDROID_HOME/ndk/25.2.9519653"
-            echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+          if [ -d "$ANDROID_HOME/ndk/26.3.11579264" ]; then
+            echo "NDK found at $ANDROID_HOME/ndk/26.3.11579264"
+            echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.3.11579264" >> $GITHUB_ENV
           else
-            echo "Error: NDK not found at $ANDROID_HOME/ndk/25.2.9519653"
+            echo "Error: NDK not found at $ANDROID_HOME/ndk/26.3.11579264"
             ls -la $ANDROID_HOME/ndk/ || echo "NDK directory not found"
             exit 1
           fi
