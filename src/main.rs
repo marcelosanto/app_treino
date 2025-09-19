@@ -20,7 +20,7 @@ fn main() {
 fn app() -> Element {
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        style { {include_str!("../assets/main.css")} }
         Home {}
     }
 }
