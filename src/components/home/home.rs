@@ -12,6 +12,8 @@ use crate::{
     models::{workout::SetData, Exercise, RecordedExerciseProgress, RegProgress, Tabs, Workoute},
 };
 
+const MAIN_CSS: Asset = asset!("/assets/main.css");
+
 #[component]
 pub fn Home() -> Element {
     let mut toggle_tabs = use_signal(|| Tabs::DashBoard);
@@ -105,6 +107,7 @@ pub fn Home() -> Element {
     }
 
     rsx! {
+        document::Link { rel: "stylesheet", href: MAIN_CSS }
         head {
             meta { charset: "UTF-8" }
             meta {
