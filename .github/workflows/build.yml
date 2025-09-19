@@ -173,7 +173,8 @@ jobs:
           cat cargo_debug_error.log
           if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
             echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
-            dx build --debug --platform android --verbose -- --stacktrace || echo "Android debug build failed, checking for APKs..."
+            # Use correct dx build command for debug (no --debug flag, pass --debug to Cargo)
+            dx build --platform android --verbose -- --debug --stacktrace || echo "Android debug build failed, checking for APKs..."
           else
             echo "Rust debug binary not found, trying release build..."
             cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_release_error.log || echo "Cargo release build failed, see cargo_release_error.log"
@@ -211,6 +212,8 @@ jobs:
             file dist/android-build/app_treino.apk
           else
             echo "Error: No APK found in target/dx/app_treino/release/android/app/build/outputs/apk/"
+            # Debug: List all possible APK locations
+            find target/dx/ -type f -name "*.apk" || echo "No APKs found in target/dx/"
             exit 1
           fi
           echo "Listing contents of dist/android-build/"
