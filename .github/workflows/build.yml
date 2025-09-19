@@ -153,11 +153,13 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          NDK_HOME: ${{ env.ANDROID_NDK_HOME }} # Set NDK_HOME to match ANDROID_NDK_HOME
           RUSTFLAGS: -C linker=/usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
         run: |
           echo "Building for Android (aarch64-linux-android)..."
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+          echo "NDK_HOME=$NDK_HOME"
           echo "RUSTFLAGS=$RUSTFLAGS"
           echo "AR_aarch64_linux_android=$AR_aarch64_linux_android"
           # Verify linker exists
@@ -167,21 +169,26 @@ jobs:
             echo "Error: Linker not found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
             exit 1
           fi
-          # Try debug build first (matching local success)
+          # Build Rust binary with standard dev profile
           echo "Attempting debug build..."
           cargo build --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_debug_error.log || echo "Cargo debug build failed, see cargo_debug_error.log"
           cat cargo_debug_error.log
           if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
             echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
-            # Use correct dx build command for debug (no --debug flag, pass --debug to Cargo)
-            dx build --platform android --verbose -- --debug --stacktrace || echo "Android debug build failed, checking for APKs..."
+            # Copy binary to expected location to bypass dx's cargo build
+            mkdir -p target/aarch64-linux-android/android-dev
+            cp target/aarch64-linux-android/debug/app_treino target/aarch64-linux-android/android-dev/app_treino
+            # Run dx build with --no-build to use existing binary
+            dx build --platform android --verbose --no-build -- --debug --stacktrace 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
+            cat dx_build_error.log
           else
             echo "Rust debug binary not found, trying release build..."
-            cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_release_error.log || echo "Cargo release build failed, see cargo_release_error.log"
+            cargo build --release --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_release_error.log || echo "Cargo release build failed, see cargo_release_error.log"
             cat cargo_release_error.log
             if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
               echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
-              dx build --release --platform android --verbose -- --stacktrace || echo "Android release build failed, checking for APKs..."
+              dx build --release --platform android --verbose --no-build -- --stacktrace 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
+              cat dx_build_error.log
             else
               echo "Error: No Rust binary found in target/aarch64-linux-android/"
               ls -la target/aarch64-linux-android/ || echo "Target directory not found"
@@ -194,6 +201,8 @@ jobs:
           ls -la target/aarch64-linux-android/debug/ || echo "Debug directory not found"
           echo "Listing contents of target/aarch64-linux-android/release/"
           ls -la target/aarch64-linux-android/release/ || echo "Release directory not found"
+          echo "Listing contents of target/aarch64-linux-android/android-dev/"
+          ls -la target/aarch64-linux-android/android-dev/ || echo "android-dev directory not found"
           echo "Listing contents of target/dx/app_treino/release/android/"
           ls -la target/dx/app_treino/release/android/ || echo "Android build output not found"
           echo "Listing contents of target/dx/app_treino/release/android/app/build/outputs/apk/"
@@ -214,6 +223,13 @@ jobs:
             echo "Error: No APK found in target/dx/app_treino/release/android/app/build/outputs/apk/"
             # Debug: List all possible APK locations
             find target/dx/ -type f -name "*.apk" || echo "No APKs found in target/dx/"
+            # Debug: Run Gradle manually to capture errors
+            if [ -d "target/dx/app_treino/release/android/app" ]; then
+              cd target/dx/app_treino/release/android/app
+              ./gradlew build --stacktrace > gradle_build.log 2>&1
+              cat gradle_build.log
+              cd /home/runner/work/app_treino/app_treino
+            fi
             exit 1
           fi
           echo "Listing contents of dist/android-build/"
