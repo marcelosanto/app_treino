@@ -19,7 +19,7 @@ jobs:
       - name: Instalar Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-gnu,x86_64-unknown-linux-musl,x86_64-unknown-linux-gnu
+          targets: x86_64-pc-windows-gnu,x86_64-unknown-linux-musl,x86_64-unknown-linux-gnu,aarch64-linux-android
 
       - name: Instalar Dependências do Sistema
         run: |
@@ -47,6 +47,11 @@ jobs:
           sdk-version: '34'
           ndk-version: '25.2.9519653'
           accept-license: true
+
+      - name: Configurar Rust Target para Android
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target list --installed
 
       - name: Cache das Dependências do Cargo
         uses: actions/cache@v4
@@ -90,6 +95,8 @@ jobs:
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
+          echo "Listing contents of target/dx/app_treino/release/linux/app/assets/"
+          ls -la target/dx/app_treino/release/linux/app/assets/ || echo "Assets directory not found"
 
       - name: Compilar Aplicação Windows (cross)
         env:
@@ -109,15 +116,29 @@ jobs:
           else
             echo "Windows executable not found, skipping..."
           fi
+          echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
+          ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
+          echo "Listing contents of dist/windows-build/"
+          ls -la dist/windows-build/ || echo "Windows dist directory not found"
 
       - name: Compilar Aplicação Android
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         run: |
-          dx build --release --platform android
-          # O APK é gerado em target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk
-          mkdir -p dist/android-build
-          cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
-          echo "Android APK copied to dist/android-build/app_treino.apk"
-          file dist/android-build/app_treino.apk
+          echo "Building for Android (aarch64-linux-android)..."
+          dx build --release --platform android --verbose
+          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
+            mkdir -p dist/android-build
+            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
+            echo "Android APK copied to dist/android-build/app_treino.apk"
+            file dist/android-build/app_treino.apk
+          else
+            echo "Error: Android APK not found at target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk"
+            exit 1
+          fi
+          echo "Listing contents of dist/android-build/"
+          ls -la dist/android-build/
 
       - name: Debug Output Paths
         run: |
@@ -127,12 +148,13 @@ jobs:
           ls -la target/x86_64-unknown-linux-gnu/release/ || echo "Linux build output not found"
           echo "Listing contents of target/x86_64-pc-windows-gnu/release/"
           ls -la target/x86_64-pc-windows-gnu/release/ || echo "Windows build output not found"
+          echo "Listing contents of target/dx/app_treino/release/android/"
+          ls -la target/dx/app_treino/release/android/ || echo "Android build output not found"
           echo "Listing contents of dist/android-build/"
           ls -la dist/android-build/ || echo "Android dist directory not found"
 
       - name: Preparar Artefatos para Release
         run: |
-          # Prepara o artefato do Linux (apenas o executável)
           mkdir -p dist/linux-build
           if [ -f "target/x86_64-unknown-linux-gnu/release/app_treino" ]; then
             cp target/x86_64-unknown-linux-gnu/release/app_treino dist/linux-build/app_treino_linux
@@ -146,8 +168,6 @@ jobs:
             echo "Linux executable not found at target/x86_64-unknown-linux-gnu/release/app_treino, failing..."
             exit 1
           fi
-
-          # Prepara o artefato do Windows (apenas o .exe)
           mkdir -p dist/windows-build
           if [ -f "target/x86_64-pc-windows-gnu/release/app_treino.exe" ]; then
             cp target/x86_64-pc-windows-gnu/release/app_treino.exe dist/windows-build/app_treino_windows.exe
@@ -160,8 +180,6 @@ jobs:
           else
             echo "Windows executable not found, skipping..."
           fi
-
-          # Prepara o artefato do Android (APK)
           mkdir -p dist/android-build
           if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
             cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
@@ -211,7 +229,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Linux
           if [ -f "dist/linux-build/app_treino_linux" ]; then
             mv dist/linux-build/app_treino_linux dist/app_treino_linux
             file dist/app_treino_linux
@@ -223,8 +240,6 @@ jobs:
             echo "Linux executable not found, failing..."
             exit 1
           fi
-
-          # Windows
           WINDOWS_ARTIFACT=""
           if [ -f "dist/windows-build/app_treino_windows.exe" ]; then
             mv dist/windows-build/app_treino_windows.exe dist/app_treino_windows.exe
@@ -237,8 +252,6 @@ jobs:
           else
             echo "Windows .exe not found, skipping..."
           fi
-
-          # Android
           ANDROID_ARTIFACT=""
           if [ -f "dist/android-build/app_treino.apk" ]; then
             mv dist/android-build/app_treino.apk dist/app_treino.apk
@@ -247,8 +260,6 @@ jobs:
           else
             echo "Android APK not found, skipping..."
           fi
-
-          # Criar a release
           gh release create ${{ github.ref_name }} \
             dist/app_treino_linux#Linux \
             $WINDOWS_ARTIFACT \
