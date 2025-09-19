@@ -4,14 +4,14 @@ title = "app_treino"
 
 [web.resource]
 # Inclua os arquivos CSS explicitamente
-style = "assets/main.css"
+style = ["assets/main.css"]
 
 # Inclua o favicon, se necessário
 # favicon = "assets/favicon.ico"
 
 [web.resource.dev]
 # Para desenvolvimento, se necessário
-style = "assets/main.css"
+style = []
 script = []
 
 [build]
