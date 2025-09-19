@@ -145,9 +145,20 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          RUSTFLAGS: -C linker=/usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
         run: |
           echo "Building for Android (aarch64-linux-android)..."
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+          echo "RUSTFLAGS=$RUSTFLAGS"
+          echo "AR_aarch64_linux_android=$AR_aarch64_linux_android"
+          # Verify linker exists
+          if [ -f "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang" ]; then
+            echo "Linker found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          else
+            echo "Error: Linker not found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+            exit 1
+          fi
           # Try release build
           echo "Attempting release build..."
           cargo build --profile release --target aarch64-linux-android --verbose --no-default-features --features mobile || echo "Cargo release build failed, continuing..."
