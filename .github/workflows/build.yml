@@ -148,14 +148,14 @@ jobs:
           echo "Listing contents of dist/windows-build/"
           ls -la dist/windows-build/ || echo "Windows dist directory not found"
 
-      - name: Compilar Aplicação Android
+        - name: Compilar Aplicação Android
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           RUSTFLAGS: -C linker=/usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          AR_aarch64_linux_android: /usr/local/lib/android/sdk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
           JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.16-8/x64
         run: |
           echo "Building for Android (aarch64-linux-android)..."
@@ -180,6 +180,11 @@ jobs:
             # Copy binary to android-dev directory to match Dioxus CLI expectation
             mkdir -p target/aarch64-linux-android/android-dev
             cp target/aarch64-linux-android/debug/app_treino target/aarch64-linux-android/android-dev/app_treino
+            # Update build.gradle to fix deprecation warning
+            if [ -f "target/dx/app_treino/debug/android/app/app/build.gradle" ]; then
+              echo "Updating build.gradle to fix deprecation warning..."
+              sed -i '/android {/a\    buildFeatures {\n        buildConfig true\n    }' target/dx/app_treino/debug/android/app/app/build.gradle
+            fi
             # Run dx build for debug
             dx build --platform android --verbose 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
             cat dx_build_error.log
@@ -189,6 +194,11 @@ jobs:
             cat cargo_release_error.log
             if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
               echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
+              # Update build.gradle for release
+              if [ -f "target/dx/app_treino/release/android/app/app/build.gradle" ]; then
+                echo "Updating build.gradle to fix deprecation warning..."
+                sed -i '/android {/a\    buildFeatures {\n        buildConfig true\n    }' target/dx/app_treino/release/android/app/app/build.gradle
+              fi
               dx build --release --platform android --verbose 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
               cat dx_build_error.log
             else
@@ -207,40 +217,38 @@ jobs:
           ls -la target/aarch64-linux-android/android-dev/ || echo "android-dev directory not found"
           echo "Listing contents of target/dx/app_treino/debug/android/"
           ls -la target/dx/app_treino/debug/android/ || echo "Android debug build output not found"
+          # Debug: List all APKs in the Android project
+          echo "Searching for APKs in target/dx/app_treino/"
+          find target/dx/app_treino/ -type f -name "*.apk" || echo "No APKs found in target/dx/app_treino/"
           # Check for debug APK
-          if [ -f "target/dx/app_treino/debug/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          if [ -f "target/dx/app_treino/debug/android/app/app/build/outputs/apk/debug/app-debug.apk" ]; then
             mkdir -p dist/android-build
-            cp target/dx/app_treino/debug/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
+            cp target/dx/app_treino/debug/android/app/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
             echo "Android debug APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           # Check for release APK
-          elif [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk" ]; then
+          elif [ -f "target/dx/app_treino/debug/android/app/app/build/outputs/apk/release/app-release.apk" ]; then
             mkdir -p dist/android-build
-            cp target/dx/app_treino/release/android/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
+            cp target/dx/app_treino/debug/android/app/app/build/outputs/apk/release/app-release.apk dist/android-build/app_treino.apk
             echo "Android release APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           else
-            echo "Error: No APK found in target/dx/app_treino/*/android/app/build/outputs/apk/"
-            # Debug: List all possible APK locations
-            find target/dx/ -type f -name "*.apk" || echo "No APKs found in target/dx/"
+            echo "Error: No APK found in target/dx/app_treino/debug/android/app/app/build/outputs/apk/"
             # Debug: Run Gradle manually to capture errors
             if [ -d "target/dx/app_treino/debug/android/app" ]; then
               echo "Running Gradle build manually..."
               cd target/dx/app_treino/debug/android/app
               ./gradlew build --stacktrace > gradle_build.log 2>&1
               cat gradle_build.log
-              cd /home/runner/work/app_treino/app_treino
-            elif [ -d "target/dx/app_treino/release/android/app" ]; then
-              echo "Running Gradle build manually for release..."
-              cd target/dx/app_treino/release/android/app
-              ./gradlew build --stacktrace > gradle_build.log 2>&1
-              cat gradle_build.log
+              # List APKs again after manual Gradle build
+              echo "Searching for APKs after manual Gradle build..."
+              find app/build/outputs/apk/ -type f -name "*.apk" || echo "No APKs found in app/build/outputs/apk/"
               cd /home/runner/work/app_treino/app_treino
             fi
             exit 1
           fi
           echo "Listing contents of dist/android-build/"
-          ls -la dist/android-build/
+          ls -la dist/android-build/ || echo "dist/android-build/ directory not found"
 
       - name: Debug Output Paths
         run: |
