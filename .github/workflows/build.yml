@@ -175,11 +175,11 @@ jobs:
           cat cargo_debug_error.log
           if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
             echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
-            # Copy binary to expected location to bypass dx's cargo build
+            # Copy binary to expected location to bypass dx's android-dev profile
             mkdir -p target/aarch64-linux-android/android-dev
             cp target/aarch64-linux-android/debug/app_treino target/aarch64-linux-android/android-dev/app_treino
-            # Run dx build with --no-build to use existing binary
-            dx build --platform android --verbose --no-build -- --debug --stacktrace 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
+            # Run dx build with verbose and stacktrace
+            dx build --platform android --verbose -- --debug --stacktrace 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
             cat dx_build_error.log
           else
             echo "Rust debug binary not found, trying release build..."
@@ -187,7 +187,7 @@ jobs:
             cat cargo_release_error.log
             if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
               echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
-              dx build --release --platform android --verbose --no-build -- --stacktrace 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
+              dx build --release --platform android --verbose -- --stacktrace 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
               cat dx_build_error.log
             else
               echo "Error: No Rust binary found in target/aarch64-linux-android/"
@@ -234,7 +234,7 @@ jobs:
           fi
           echo "Listing contents of dist/android-build/"
           ls -la dist/android-build/
-
+          
       - name: Debug Output Paths
         run: |
           echo "Listing contents of target/dx/app_treino/release/"
