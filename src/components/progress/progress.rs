@@ -5,10 +5,7 @@ use uuid::Uuid;
 use crate::models::{RecordedExerciseProgress, RegProgress, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
 
 #[component]
-pub fn Progress(
-    all_workouts: Signal<Vec<Workoute>>,
-    reg_progress: Signal<Vec<RegProgress>>,
-) -> Element {
+pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
     // selected_progress_workout agora é o Signal para o treino que será EDITADO no formulário
     let mut selected_progress_workout = use_signal(|| None::<Workoute>);
 
@@ -46,7 +43,7 @@ pub fn Progress(
                         match selected_progress_workout() {
                             Some(w) => rsx! {
                                 // Passe o Signal mutável para FormProgress
-                                FormProgress { workout_to_record: selected_progress_workout, progress: reg_progress }
+                                FormProgress { workout_to_record: selected_progress_workout }
                             },
                             None => rsx! {
                                 p { "Nenhum treino escolhido" }
@@ -61,14 +58,9 @@ pub fn Progress(
 
 // O FormProgress agora recebe um Signal<Option<Workoute>> para poder modificá-lo
 #[component]
-pub fn FormProgress(
-    workout_to_record: Signal<Option<Workoute>>,
-    progress: Signal<Vec<RegProgress>>,
-) -> Element {
-    // Remove meu_vec, pois agora os inputs se vinculam diretamente ao workout_to_record Signal
-
-    // Formata a data atual para o input type="date"
+pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
     let today_date = Local::now().format("%Y-%m-%d").to_string();
+    let mut progress_regs = use_context::<Signal<Vec<RegProgress>>>();
 
     rsx! {
         // Precisa desempacotar o Option<Workoute> antes de renderizar o formulário
@@ -112,7 +104,7 @@ pub fn FormProgress(
                             };
                             println!("Objeto final de RegProgress: {:?}", final_reg_progress.id);
 
-                            progress.push(final_reg_progress);
+                            progress_regs.push(final_reg_progress);
                         },
                         div { class: "form-group",
                             label { "Data do Treino:" }

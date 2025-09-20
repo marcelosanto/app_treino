@@ -4,22 +4,24 @@ use dioxus::prelude::*;
 use crate::models::RegProgress;
 
 #[component]
-pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
-    let soma_reps: i32 = progress() // ou o tipo numérico apropriado para `reps`
+pub fn DashBoard() -> Element {
+    let progress_regs = use_context::<Signal<Vec<RegProgress>>>();
+
+    let soma_reps: i32 = progress_regs() // ou o tipo numérico apropriado para `reps`
         .iter()
         .flat_map(|f| &f.exercises) // Achata a lista de exercícios de cada 'RegProgress'
         .flat_map(|x| &x.recorded_sets) // Achata a lista de séries de cada 'RecordedExerciseProgress'
         .map(|set| set.reps as i32) // Extrai o valor de 'reps' de cada série
         .sum();
 
-    let soma_pesos: i32 = progress() // ou o tipo numérico apropriado para `reps`
+    let soma_pesos: i32 = progress_regs() // ou o tipo numérico apropriado para `reps`
         .iter()
         .flat_map(|f| &f.exercises) // Achata a lista de exercícios de cada 'RegProgress'
         .flat_map(|x| &x.recorded_sets) // Achata a lista de séries de cada 'RecordedExerciseProgress'
         .map(|set| set.weight as i32) // Extrai o valor de 'reps' de cada série
         .sum();
 
-    let total_exercicios: usize = progress()
+    let total_exercicios: usize = progress_regs()
         .iter()
         .map(|reg_progress| reg_progress.exercises.len()) // Para cada treino, obtém o número de exercícios
         .sum();
@@ -30,7 +32,7 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
                 h2 { "📊 Visão Geral Rápida" }
                 div { class: "stats-grid",
                     div { class: "stat-card",
-                        div { class: "stat-value", "{progress().len()}" }
+                        div { class: "stat-value", "{progress_regs().len()}" }
                         div { class: "stat-label", "Treinos Realizados" }
                     }
                     div { class: "stat-card",
@@ -51,13 +53,13 @@ pub fn DashBoard(progress: Signal<Vec<RegProgress>>) -> Element {
             div { class: "card",
                 h3 { "🔥 Últimos Treinos Registrados" }
                 div { id: "recentWorkouts", class: "workout-list",
-                    if progress().is_empty() {
+                    if progress_regs().is_empty() {
                         div { class: "empty-state",
                             p { "Nenhum treino registrado ainda. Comece agora!" }
                         }
                     }
 
-                    for prog in progress() {
+                    for prog in progress_regs() {
                         div { class: "workout-item dashboard-item",
                             div { class: "workout-header",
                                 div { class: "workout-title", {prog.workout_name} }

@@ -19,9 +19,9 @@ pub fn Home() -> Element {
     let now: DateTime<Local> = Local::now();
     let mut show_modal = use_signal(|| false);
 
-    let mut progress_regs = use_signal(|| vec![]);
+    let mut progress_regs = use_context_provider(|| Signal::new(vec![RegProgress::default()]));
 
-    if progress_regs.is_empty() {
+    if progress_regs().is_empty() {
         use_effect(move || {
             progress_regs.push(RegProgress {
                 id: Uuid::new_v4(),
@@ -150,7 +150,7 @@ pub fn Home() -> Element {
 
                 match toggle_tabs() {
                     Tabs::DashBoard => rsx! {
-                        DashBoard { progress: progress_regs }
+                        DashBoard {}
                         button {
                             class: "floating-add-btn",
                             onclick: move |_| show_modal.set(true),
@@ -162,10 +162,10 @@ pub fn Home() -> Element {
                         Workouts { workoutes }
                     },
                     Tabs::Progress => rsx! {
-                        Progress { all_workouts: workoutes, reg_progress: progress_regs }
+                        Progress { all_workouts: workoutes }
                     },
                     Tabs::Stats => rsx! {
-                        Stats { progress: progress_regs }
+                        Stats {}
                     },
 
                 }
