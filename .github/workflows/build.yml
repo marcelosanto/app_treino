@@ -148,7 +148,7 @@ jobs:
           echo "Listing contents of dist/windows-build/"
           ls -la dist/windows-build/ || echo "Windows dist directory not found"
 
-        - name: Compilar Aplicação Android
+      - name: Compilar Aplicação Android
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
