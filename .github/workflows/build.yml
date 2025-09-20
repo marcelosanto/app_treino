@@ -153,15 +153,17 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-          NDK_HOME: ${{ env.ANDROID_NDK_HOME }} # Set NDK_HOME to match ANDROID_NDK_HOME
+          NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           RUSTFLAGS: -C linker=/usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.16-8/x64
         run: |
           echo "Building for Android (aarch64-linux-android)..."
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
           echo "NDK_HOME=$NDK_HOME"
           echo "RUSTFLAGS=$RUSTFLAGS"
           echo "AR_aarch64_linux_android=$AR_aarch64_linux_android"
+          echo "JAVA_HOME=$JAVA_HOME"
           # Verify linker exists
           if [ -f "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang" ]; then
             echo "Linker found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
@@ -169,17 +171,17 @@ jobs:
             echo "Error: Linker not found at $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
             exit 1
           fi
-          # Build Rust binary with standard dev profile
+          # Build Rust binary with standard debug profile
           echo "Attempting debug build..."
           cargo build --target aarch64-linux-android --verbose --no-default-features --features mobile 2> cargo_debug_error.log || echo "Cargo debug build failed, see cargo_debug_error.log"
           cat cargo_debug_error.log
           if [ -f "target/aarch64-linux-android/debug/app_treino" ]; then
             echo "Rust debug binary found at target/aarch64-linux-android/debug/app_treino"
-            # Copy binary to expected location to bypass dx's android-dev profile
+            # Copy binary to android-dev directory to match Dioxus CLI expectation
             mkdir -p target/aarch64-linux-android/android-dev
             cp target/aarch64-linux-android/debug/app_treino target/aarch64-linux-android/android-dev/app_treino
-            # Run dx build with verbose and stacktrace
-            dx build --platform android --verbose -- --debug --stacktrace 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
+            # Run dx build for debug
+            dx build --platform android --verbose 2> dx_build_error.log || echo "Android debug build failed, see dx_build_error.log"
             cat dx_build_error.log
           else
             echo "Rust debug binary not found, trying release build..."
@@ -187,7 +189,7 @@ jobs:
             cat cargo_release_error.log
             if [ -f "target/aarch64-linux-android/release/app_treino" ]; then
               echo "Rust release binary found at target/aarch64-linux-android/release/app_treino"
-              dx build --release --platform android --verbose -- --stacktrace 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
+              dx build --release --platform android --verbose 2> dx_build_error.log || echo "Android release build failed, see dx_build_error.log"
               cat dx_build_error.log
             else
               echo "Error: No Rust binary found in target/aarch64-linux-android/"
@@ -203,14 +205,12 @@ jobs:
           ls -la target/aarch64-linux-android/release/ || echo "Release directory not found"
           echo "Listing contents of target/aarch64-linux-android/android-dev/"
           ls -la target/aarch64-linux-android/android-dev/ || echo "android-dev directory not found"
-          echo "Listing contents of target/dx/app_treino/release/android/"
-          ls -la target/dx/app_treino/release/android/ || echo "Android build output not found"
-          echo "Listing contents of target/dx/app_treino/release/android/app/build/outputs/apk/"
-          ls -la target/dx/app_treino/release/android/app/build/outputs/apk/ || echo "APK output directory not found"
-          # Check for debug APK first (matching local success)
-          if [ -f "target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          echo "Listing contents of target/dx/app_treino/debug/android/"
+          ls -la target/dx/app_treino/debug/android/ || echo "Android debug build output not found"
+          # Check for debug APK
+          if [ -f "target/dx/app_treino/debug/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
             mkdir -p dist/android-build
-            cp target/dx/app_treino/release/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
+            cp target/dx/app_treino/debug/android/app/build/outputs/apk/debug/app-debug.apk dist/android-build/app_treino.apk
             echo "Android debug APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           # Check for release APK
@@ -220,11 +220,18 @@ jobs:
             echo "Android release APK copied to dist/android-build/app_treino.apk"
             file dist/android-build/app_treino.apk
           else
-            echo "Error: No APK found in target/dx/app_treino/release/android/app/build/outputs/apk/"
+            echo "Error: No APK found in target/dx/app_treino/*/android/app/build/outputs/apk/"
             # Debug: List all possible APK locations
             find target/dx/ -type f -name "*.apk" || echo "No APKs found in target/dx/"
             # Debug: Run Gradle manually to capture errors
-            if [ -d "target/dx/app_treino/release/android/app" ]; then
+            if [ -d "target/dx/app_treino/debug/android/app" ]; then
+              echo "Running Gradle build manually..."
+              cd target/dx/app_treino/debug/android/app
+              ./gradlew build --stacktrace > gradle_build.log 2>&1
+              cat gradle_build.log
+              cd /home/runner/work/app_treino/app_treino
+            elif [ -d "target/dx/app_treino/release/android/app" ]; then
+              echo "Running Gradle build manually for release..."
               cd target/dx/app_treino/release/android/app
               ./gradlew build --stacktrace > gradle_build.log 2>&1
               cat gradle_build.log
@@ -234,7 +241,7 @@ jobs:
           fi
           echo "Listing contents of dist/android-build/"
           ls -la dist/android-build/
-          
+
       - name: Debug Output Paths
         run: |
           echo "Listing contents of target/dx/app_treino/release/"
