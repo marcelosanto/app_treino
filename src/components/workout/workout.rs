@@ -1,16 +1,16 @@
 use dioxus::prelude::*;
 
 use crate::{
-    components::workout::{ListWorkout, ViewWorkout},
+    components::workout::{create_workout::CreateWorkoutModal, ListWorkout, ViewWorkout},
     models::Workoute,
 };
 
 #[component]
-pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
-    println!("Workouts -> {:?}", workoutes());
-
+pub fn Workouts() -> Element {
     let show_modal = use_signal(|| false);
     let selected_workout = use_signal(|| None);
+    let workoutes = use_context::<Signal<Vec<Workoute>>>();
+    let mut show_modal_create_workout = use_signal(|| false);
 
     rsx! {
         div {
@@ -22,7 +22,7 @@ pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
                 }
                 button {
                     class: "btn btn-primary",
-                    onclick: move |_| { println!("Criar novo treino") },
+                    onclick: move |_| show_modal_create_workout.set(true),
                     "+ Criar Novo Plano de Treino"
                 }
                 div { id: "workoutsList", class: "workout-list",
@@ -49,6 +49,10 @@ pub fn Workouts(workoutes: Signal<Vec<Workoute>>) -> Element {
                     }
                 }
             }
+        }
+
+        if show_modal_create_workout() {
+            CreateWorkoutModal { show_modal: show_modal_create_workout }
         }
     }
 }

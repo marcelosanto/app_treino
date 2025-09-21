@@ -14,14 +14,15 @@ use crate::{
 
 #[component]
 pub fn Home() -> Element {
-    let mut toggle_tabs = use_signal(|| Tabs::DashBoard);
-    let mut workoutes = use_signal(|| vec![]);
     let now: DateTime<Local> = Local::now();
     let mut show_modal = use_signal(|| false);
 
-    let mut progress_regs = use_signal(|| vec![]);
+    let mut toggle_tabs = use_context_provider(|| Signal::new(Tabs::DashBoard));
+    let mut workoutes = use_context_provider(|| Signal::new(vec![]));
+    let mut progress_regs = use_context_provider(|| Signal::new(vec![RegProgress::default()]));
+    let selected_workout_for_register = use_context_provider(|| Signal::new(Workoute::default()));
 
-    if progress_regs.is_empty() {
+    if progress_regs().is_empty() {
         use_effect(move || {
             progress_regs.push(RegProgress {
                 id: Uuid::new_v4(),
@@ -150,7 +151,7 @@ pub fn Home() -> Element {
 
                 match toggle_tabs() {
                     Tabs::DashBoard => rsx! {
-                        DashBoard { progress: progress_regs }
+                        DashBoard {}
                         button {
                             class: "floating-add-btn",
                             onclick: move |_| show_modal.set(true),
@@ -159,19 +160,19 @@ pub fn Home() -> Element {
                         }
                     },
                     Tabs::Workouts => rsx! {
-                        Workouts { workoutes }
+                        Workouts {}
                     },
                     Tabs::Progress => rsx! {
-                        Progress { all_workouts: workoutes, reg_progress: progress_regs }
+                        Progress {}
                     },
                     Tabs::Stats => rsx! {
-                        Stats { progress: progress_regs }
+                        Stats {}
                     },
 
                 }
 
                 if show_modal() {
-                    CreateWorkoutModal { workoutes, show_modal }
+                    CreateWorkoutModal { show_modal }
                 }
             }
         }

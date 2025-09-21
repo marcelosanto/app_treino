@@ -49,8 +49,7 @@ impl Default for Workoute {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct RegProgress {
     pub id: Uuid,
     pub workout_id: Uuid,

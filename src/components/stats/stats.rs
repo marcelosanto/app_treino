@@ -12,8 +12,8 @@ pub struct ExerciseRecord {
 }
 
 #[component]
-pub fn Stats(progress: Signal<Vec<RegProgress>>) -> Element {
-    let records = encontrar_recordes(progress());
+pub fn Stats() -> Element {
+    let records = encontrar_recordes();
 
     rsx! {
         div { id: "stats", class: "tab-content active",
@@ -51,10 +51,11 @@ pub fn Stats(progress: Signal<Vec<RegProgress>>) -> Element {
     }
 }
 
-fn encontrar_recordes(progress: Vec<RegProgress>) -> Vec<ExerciseRecord> {
+fn encontrar_recordes() -> Vec<ExerciseRecord> {
     let mut records: HashMap<String, ExerciseRecord> = HashMap::new();
+    let progress_regs = use_context::<Signal<Vec<RegProgress>>>();
 
-    for reg_progress in progress.iter() {
+    for reg_progress in progress_regs.iter() {
         for exercise in &reg_progress.exercises {
             for set in &exercise.recorded_sets {
                 // volume = peso * repetições

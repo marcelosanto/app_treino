@@ -6,14 +6,8 @@ mod components;
 mod models;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
-    // let config = dioxus::desktop::Config::new().with_menu(None);
-    // LaunchBuilder::desktop().with_cfg(config).launch(app);
-
-    //dioxus::launch(App);
-
     #[cfg(feature = "desktop")]
     {
         // Se a feature "desktop" estiver ativa, usamos a configuração de desktop.
