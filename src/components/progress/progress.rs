@@ -2,47 +2,54 @@ use chrono::Local;
 use dioxus::prelude::*;
 use uuid::Uuid;
 
-use crate::models::{RecordedExerciseProgress, RegProgress, SetData, Workoute}; // Certifique-se de que Exercise e SetData estão importados
+use crate::models::{RecordedExerciseProgress, RegProgress, SetData, Tabs, Workoute}; // Certifique-se de que Exercise e SetData estão importados
 
 #[component]
-pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
-    // selected_progress_workout agora é o Signal para o treino que será EDITADO no formulário
+pub fn Progress() -> Element {
     let mut selected_progress_workout = use_signal(|| None::<Workoute>);
+    let workoutes = use_context::<Signal<Vec<Workoute>>>();
+    let selected_workout_for_register = use_context::<Signal<Workoute>>();
+    let mut workout_name = use_signal(|| "Escolha um treino".to_string());
+
+    use_effect(move || {
+        let workout_from_context = selected_workout_for_register.read();
+
+        if !workout_from_context.name.is_empty() {
+            workout_name.set(workout_from_context.name.clone());
+            selected_progress_workout.set(Some(workout_from_context.clone()));
+        }
+    });
 
     rsx! {
-        div { id: "progress", class: "tab-content active",
+        div { class: "tab-content active",
             div { class: "card",
                 h2 { "📈 Registrar Progresso" }
                 div { class: "form-group",
                     label { r#for: "progressWorkout", "Selecione o Plano de Treino de hoje:" }
                     select {
-                        id: "progressWorkout",
                         oninput: move |evt| {
                             println!("Selected value: {}", evt.value());
 
                             let parsed_uuid_option = Uuid::parse_str(&evt.value()).ok();
 
                             if let Some(uuid) = parsed_uuid_option {
-                                // Quando um plano é selecionado, CLONE-O e coloque no signal mutável.
-                                // Este será o `Workoute` que o `FormProgress` irá editar.
-                                let workt_find = all_workouts.read().iter().find(|w| w.id == uuid).cloned();
+                                let workt_find = workoutes.read().iter().find(|w| w.id == uuid).cloned();
                                 selected_progress_workout.set(workt_find);
                             } else {
                                 selected_progress_workout.set(None); // Limpa a seleção se for "Escolha um treino"
                             }
                         },
-                        option { value: "", "Escolha um treino" }
+                        option { value: "", "{workout_name}" }
 
-                        for work in all_workouts() {
+                        for work in workoutes() {
                             option { value: "{work.id}", "{work.name}" } // Use o ID como valor
                         }
                     }
                 }
-                div { id: "progressForm",
+                div {
                     {
                         match selected_progress_workout() {
-                            Some(w) => rsx! {
-                                // Passe o Signal mutável para FormProgress
+                            Some(_) => rsx! {
                                 FormProgress { workout_to_record: selected_progress_workout }
                             },
                             None => rsx! {
@@ -61,19 +68,18 @@ pub fn Progress(all_workouts: Signal<Vec<Workoute>>) -> Element {
 pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
     let today_date = Local::now().format("%Y-%m-%d").to_string();
     let mut progress_regs = use_context::<Signal<Vec<RegProgress>>>();
+    let mut toggle_tabs = use_context::<Signal<Tabs>>();
 
     rsx! {
         // Precisa desempacotar o Option<Workoute> antes de renderizar o formulário
         {
-            if let Some(mut workout) = workout_to_record.read().as_ref().cloned() {
+            if let Some(workout) = workout_to_record.read().as_ref().cloned() {
                 rsx! {
                     form {
                         id: "progressWorkoutForm",
                         onsubmit: move |evt| {
                             evt.prevent_default();
                             println!("Dentro do form");
-                            // Aqui você pegaria os dados de `workout_to_record().clone()`
-                            // e os processaria, talvez criando um `RegProgress` e salvando.
                             println!("Progresso registrado para: {:?}", workout.name);
                             println!("Dados do progresso: {:?}", workout_to_record());
 
@@ -105,6 +111,7 @@ pub fn FormProgress(workout_to_record: Signal<Option<Workoute>>) -> Element {
                             println!("Objeto final de RegProgress: {:?}", final_reg_progress.id);
 
                             progress_regs.push(final_reg_progress);
+                            toggle_tabs.set(Tabs::DashBoard);
                         },
                         div { class: "form-group",
                             label { "Data do Treino:" }

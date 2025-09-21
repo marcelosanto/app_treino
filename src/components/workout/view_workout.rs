@@ -1,12 +1,15 @@
 use dioxus::prelude::*;
 
-use crate::models::{Exercise, SetData, Workoute};
+use crate::models::{Tabs, Workoute};
 
 #[component]
 pub fn ViewWorkout(
     selected_workout: Signal<Option<Workoute>>,
     show_modal: Signal<bool>,
 ) -> Element {
+    let mut selected_workout_for_register = use_context::<Signal<Workoute>>();
+    let mut toggle_tabs = use_context::<Signal<Tabs>>();
+
     if let Some(workout) = selected_workout.read().as_ref() {
         let base_workout_for_closures = workout.clone();
 
@@ -60,8 +63,8 @@ pub fn ViewWorkout(
                         class: "btn btn-primary",
                         onclick: move |_| {
 
-                            let workout_to_register = base_workout_for_closures.clone();
-
+                            selected_workout_for_register.set(base_workout_for_closures.clone());
+                            toggle_tabs.set(Tabs::Progress);
                             show_modal.set(false);
                         },
                         "Registrar este Treino"

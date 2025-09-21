@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::Local;
 use dioxus::prelude::*;
 use uuid::Uuid;
 
@@ -6,8 +6,9 @@ use uuid::Uuid;
 use crate::models::{Exercise, SetData, Workoute};
 
 #[component]
-pub fn CreateWorkoutModal(workoutes: Signal<Vec<Workoute>>, show_modal: Signal<bool>) -> Element {
+pub fn CreateWorkoutModal(show_modal: Signal<bool>) -> Element {
     println!("Eu abri o Modal de Criação de Treino");
+    let mut workoutes = use_context::<Signal<Vec<Workoute>>>();
 
     // Signal para a lista de exercícios que estão sendo criados neste modal
     let mut exercises = use_signal(|| vec![Exercise::default()]);
