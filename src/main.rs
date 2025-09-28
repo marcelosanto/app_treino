@@ -6,6 +6,7 @@ mod components;
 mod models;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
+const CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
     #[cfg(feature = "desktop")]
@@ -32,7 +33,8 @@ fn main() {
 fn app() -> Element {
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
-        style { {include_str!("../assets/main.css")} }
+        document::Stylesheet { href: CSS }
+                //style { {include_str!("../assets/main.css")} }
         Home {}
     }
 }
