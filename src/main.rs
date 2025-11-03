@@ -34,7 +34,7 @@ fn app() -> Element {
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Stylesheet { href: CSS }
-                //style { {include_str!("../assets/main.css")} }
+        //style { {include_str!("../assets/main.css")} }
         Home {}
     }
 }

@@ -7,15 +7,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.6.3" }
+dioxus = { version = "0.7.0" }
 chrono = "0.4.42"
 uuid = { version = "1.18.1", features = ["v4"] }
 rusqlite = "0.37.0"
 
 [features]
+desktop = ["dioxus/desktop"]
 default = ["desktop"]
 web = ["dioxus/web"]
-desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
 
 [profile]
