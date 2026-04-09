@@ -1,16 +1,16 @@
 [package]
 name = "app_treino"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Marcelo Santos <rocha.mer21@gmail.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.7.2" }
-chrono = "0.4.42"
-uuid = { version = "1.19.0", features = ["v4"] }
-rusqlite = "0.37.0"
+dioxus = { version = "0.7.5" }
+chrono = "0.4.44"
+uuid = { version = "1.23.0", features = ["v4"] }
+rusqlite = "0.39.0"
 
 [features]
 desktop = ["dioxus/desktop"]
