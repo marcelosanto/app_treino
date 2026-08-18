@@ -20,7 +20,7 @@ pub fn Home() -> Element {
     let mut toggle_tabs = use_context_provider(|| Signal::new(Tabs::DashBoard));
     let mut workoutes = use_context_provider(|| Signal::new(vec![]));
     let mut progress_regs = use_context_provider(|| Signal::new(vec![RegProgress::default()]));
-    let selected_workout_for_register = use_context_provider(|| Signal::new(Workoute::default()));
+    let _selected_workout_for_register = use_context_provider(|| Signal::new(Workoute::default()));
 
     if progress_regs().is_empty() {
         use_effect(move || {
